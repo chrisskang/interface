@@ -3,10 +3,22 @@ import { DoubleSide } from "three"
 
 
 
-export function Comp({vertices}) {
-
-  const positions = useMemo(() => Float32Array.from(new Array(vertices.length).fill().flatMap((item, index) => vertices[index].toArray())),[vertices]);
-
+export function Comp({vertices, indicesInput}) {
+  
+  const positions = useMemo(() =>
+    
+    Float32Array.from(
+      new Array(vertices.length).fill().flatMap(
+        (item, index) => vertices[index]
+    )),[vertices]);
+  
+    const indicess = useMemo(() =>
+    
+      Uint16Array.from(
+        new Array(indicesInput.length).fill().flatMap(
+          (item, index) => indicesInput[index]
+      )),[indicesInput]);
+    
   return (
   <mesh>
       <bufferGeometry>
@@ -27,13 +39,13 @@ export function Comp({vertices}) {
               array={normals}
               count={normals.length / 3}
               itemSize={3}
-          />
+          /> */}
           <bufferAttribute
               attach="index"
-              array={indices}
-              count={indices.length}
+              array={indicess}
+              count={indicess.length}
               itemSize={1}
-          /> */}
+          />
       </bufferGeometry>
       <meshStandardMaterial
           vertexColors
