@@ -6,6 +6,7 @@ import { AccumulativeShadows, RandomizedLight, Center, Environment, OrbitControl
 import { Sphere } from './components/sphere'
 import { Env } from './components/env'
 import { DoubleSide } from 'three'
+import { Comp } from './components/mesh'
 
 const positions = new Float32Array([
   1, 0, 0,
@@ -33,47 +34,13 @@ const indices = new Uint16Array([
   2, 3, 1,
 ])
 
-const Comp = () =>
-  <mesh>
-      <bufferGeometry>
-          <bufferAttribute
-              attach='attributes-position'
-              array={positions}
-              count={positions.length / 3}
-              itemSize={3}
-          />
-          <bufferAttribute
-              attach='attributes-color'
-              array={colors}
-              count={colors.length / 3}
-              itemSize={3}
-          />
-          <bufferAttribute
-              attach='attributes-normal'
-              array={normals}
-              count={normals.length / 3}
-              itemSize={3}
-          />
-          <bufferAttribute
-              attach="index"
-              array={indices}
-              count={indices.length}
-              itemSize={1}
-          />
-      </bufferGeometry>
-      <meshStandardMaterial
-          vertexColors
-          side={DoubleSide}
-      />
-  </mesh>
-
 export default function App() {
   return (
     <Canvas shadows camera={{ position: [0, 0, 10], fov: 50 }}>
       
       <group position={[0, -0.65, 0]}>
         {/* <Sphere /> */}
-        <Comp />
+        <Comp vertices = {positions}/>
         
         <Grid
 				position={[0, 0, 0]}

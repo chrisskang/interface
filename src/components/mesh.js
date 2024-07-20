@@ -1,45 +1,44 @@
-import React from 'react';
+import React, { useMemo } from "react"
+import { DoubleSide } from "three"
 
-export default function Mesh() {
-    const vertices = new Float32Array([
-      0.0, 0.0,  0.0,
-      100.0, 0.0,  0.0,
-      0.0, 100.0,  0.0,
-        
-      100.0, 0.0,  0.0,
-      100.0, 100.0,  0.0,
-      0.0, 100.0,  0.0
-    ]);
 
-    const colors = new Float32Array([
-      100.0, 0.0, 0.0,
-      0.0, 100.0, 0.0,
-      0.0, 0.0, 100.0,
 
-      100.0, 0.0, 0.0,
-      0.0, 100.0, 0.0,
-      0.0, 0.0, 100.0,
-    ]);
+export function Comp({vertices}) {
 
-    
-    return (
-      <mesh>
-        <bufferGeometry>
+  const positions = useMemo(() => Float32Array.from(new Array(vertices.length).fill().flatMap((item, index) => vertices[index].toArray())),[vertices]);
+
+  return (
+  <mesh>
+      <bufferGeometry>
           <bufferAttribute
-            attachObject={["attributes", "position"]}
-            array={vertices}
-            itemSize={3}
-            count={6}
+              attach='attributes-position'
+              array={positions}
+              count={positions.length / 3}
+              itemSize={3}
+          />
+          {/* <bufferAttribute
+              attach='attributes-color'
+              array={colors}
+              count={colors.length / 3}
+              itemSize={3}
           />
           <bufferAttribute
-            attachObject={["attributes", "color"]}
-            array={colors}
-            itemSize={3}
-            count={6}
+              attach='attributes-normal'
+              array={normals}
+              count={normals.length / 3}
+              itemSize={3}
           />
-        </bufferGeometry>
-        <meshStandardMaterial attach="material" color="hotpink" flatShading={true} />
-        
-      </mesh>
-    );
+          <bufferAttribute
+              attach="index"
+              array={indices}
+              count={indices.length}
+              itemSize={1}
+          /> */}
+      </bufferGeometry>
+      <meshStandardMaterial
+          vertexColors
+          side={DoubleSide}
+      />
+  </mesh>
+  )
 }
