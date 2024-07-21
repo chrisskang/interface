@@ -17,7 +17,7 @@ export const useSocket = () => {
 
 				setConnected(true)
 
-				send("login", "interface")
+				send("login", { client: "interface" })
 			}
 
 			socket.current.onmessage = (event) => {
