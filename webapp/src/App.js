@@ -7,7 +7,7 @@ import { UI } from './components/ui'
 import { useSocket } from "./hooks/useSocket"
 
 export default function App() {
-  const { angles, send } = useSocket()
+  const { positions, send } = useSocket()
 
   return (
     <div style={{
@@ -29,7 +29,7 @@ export default function App() {
       <Canvas shadows camera={{ position: [0, 1, 10], fov: 50 }}>
         <group position={[0, 0, 0]}>
           {/* <Sphere /> */}
-          <Comp angles={angles} />
+          <Comp positions={positions} />
 
           <Grid
             position={[0, -1.1, 0]}
