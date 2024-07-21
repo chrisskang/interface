@@ -30,7 +30,7 @@ export default function App() {
 			>
 				<UI send={send} />
 			</div>
-			<Canvas shadows camera={{ position: [0, 1, 10], fov: 50 }}>
+			<Canvas shadows camera={{ position: [3, 2, 3], fov: 50 }}>
 				<group position={[0, 0, 0]}>
 					{/* <Sphere /> */}
 					<Comp positions={positions} />
@@ -38,10 +38,11 @@ export default function App() {
 					<Grid
 						position={[0, -1.1, 0]}
 						infiniteGrid
-						cellSize={10}
-						cellThickness={2}
+						cellSize={1}
+						cellThickness={1.5}
 						sectionSize={0.1}
-						sectionThickness={0.75}
+						sectionThickness={1}
+            fadeDistance={10}
 						sectionColor={"#ffffff"}
 						cellColor={"#ffffff"}
 					/>

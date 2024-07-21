@@ -12,7 +12,8 @@ const Slider = ({ angle, setAngles, index }) => {
           return newAngles
         })
       }} />
-      <input type="checkbox" value={angle.toggle} onChange={(e) => {
+      <span>|</span>  
+        <input type="checkbox" value={angle.toggle} onChange={(e) => {
         setAngles(angles => {
           const newAngles = [...angles]
           newAngles[index] = { angle: angles[index].angle, toggle: e.target.checked ? 1 : 0 }
@@ -29,11 +30,11 @@ export function UI({ send }) {
   const [debouncedAngles, setDebouncedAngles] = useState(new Array(36).fill(0))
   const callback = useDebouncedCallback((newAngles) => {
     if (!deepEqual(newAngles, debouncedAngles)) {
-      console.log("update socket", newAngles)
+      //console.log("update socket", newAngles)
       send({ type: "angles", angles: newAngles })
       setDebouncedAngles(newAngles)
     }
-  }, 1500);
+  }, 300);
 
   useEffect(() => {
     callback(angles)
