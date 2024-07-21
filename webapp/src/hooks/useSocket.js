@@ -4,7 +4,7 @@ export const useSocket = () => {
 	const socket = useRef(undefined)
 	const [connected, setConnected] = useState(false)
 
-	const angles = useRef(new Array(360).fill(0))
+	const positions = useRef(new Array(108).fill(0))
 
 	useEffect(() => {
 		const connect = () => {
@@ -24,8 +24,8 @@ export const useSocket = () => {
 				if (typeof event.data === "string") {
 					const message = JSON.parse(event.data)
 
-					if (message.type === "angles") {
-						angles.current = message.data
+					if (message.type === "positions") {
+						positions.current = message.data["positions"]
 					}
 				}
 			}
@@ -61,7 +61,7 @@ export const useSocket = () => {
 	return {
 		socket: socket.current,
 		connected,
-		angles,
+		positions,
 		send
 	}
 }
