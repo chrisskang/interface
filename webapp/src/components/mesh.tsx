@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber"
 import React from "react"
+import React from "react"
 import { type RefObject, useRef } from "react"
 import { type BufferAttribute, DoubleSide, MathUtils } from "three"
 
