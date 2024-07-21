@@ -27,7 +27,7 @@ export function Comp({ positions }) {
       positionBuffer.current.array = new Float32Array(positions.current)
       positionBuffer.current.array.needsUpdate = true
 
-      console.log("positionBuffer: ", positionBuffer)
+      console.log("positionBuffer: ", positionBuffer.current.array)
 
     }
 
@@ -38,7 +38,7 @@ export function Comp({ positions }) {
       <bufferGeometry>
         <bufferAttribute
           //array = {positions.current.array}
-          array = {positionBuffer.current.array}
+          array = {positions}
           ref={positionBuffer}
           attach='attributes-position'
           count={36}
