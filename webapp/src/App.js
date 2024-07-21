@@ -1,9 +1,10 @@
-import { Grid, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import React from "react";
-import { Env } from "./components/env";
-import { Comp } from "./components/mesh";
-import { useSocket } from "./hooks/useSocket";
+import { Grid, OrbitControls } from '@react-three/drei'
+import { Canvas } from '@react-three/fiber'
+import { default as React, default as React } from 'react'
+import { Env } from './components/env'
+import { Comp } from './components/mesh'
+import { UI } from './components/ui'
+import { useSocket } from "./hooks/useSocket"
 
 export default function App() {
   const { angles, send } = useSocket()
@@ -13,7 +14,7 @@ export default function App() {
       <group position={[0, 0, 0]}>
         {/* <Sphere /> */}
         <Comp />
-
+        <UI />
         <Grid
           position={[0, -1.1, 0]}
           infiniteGrid
