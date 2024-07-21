@@ -4,22 +4,32 @@ import { useDebouncedCallback } from "use-debounce"
 
 const Slider = ({ angle, setAngles, index }) => {
   return (
-    <input type="range" min="-30" max="30" value={angle} onChange={(e) => {
-      setAngles(angles => {
-        const newAngles = [...angles]
-        newAngles[index] = parseInt(e.target.value)
-        return newAngles
-      })
-    }} />
+    <div>
+      <input type="range" min="-30" max="30" value={angle.angle} onChange={(e) => {
+        setAngles(angles => {
+          const newAngles = [...angles]
+          newAngles[index] = { angle: parseInt(e.target.value), toggle: angles[index].toggle }
+          return newAngles
+        })
+      }} />
+      <input type="checkbox" value={angle.toggle} onChange={(e) => {
+        setAngles(angles => {
+          const newAngles = [...angles]
+          newAngles[index] = { angle: angles[index].angle, toggle: e.target.checked ? 1 : 0 }
+          return newAngles
+        })
+      }} />
+    </div>
   )
 }
 
 export function UI({ send }) {
-  const [angles, setAngles] = useState(new Array(36).fill(0))
+  const [angles, setAngles] = useState(new Array(36).fill(0).map(() => ({ angle: 0, toggle: 0 })))
+
   const [debouncedAngles, setDebouncedAngles] = useState(new Array(36).fill(0))
   const callback = useDebouncedCallback((newAngles) => {
     if (!deepEqual(newAngles, debouncedAngles)) {
-      console.log("update socket")
+      console.log("update socket", newAngles)
       send({ type: "angles", angles: newAngles })
       setDebouncedAngles(newAngles)
     }
