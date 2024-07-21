@@ -1,14 +1,45 @@
-import { Center } from "@react-three/drei"
-import { useControls } from "leva"
-import React from "react"
+import deepEqual from "deep-equal"
+import React, { useEffect, useState } from "react"
+import { useDebouncedCallback } from "use-debounce"
 
-export function UI() {
-    const { angle, toggle } = useControls({ angle: { value: 0.5, min: -30, max: 30 }, toggle: true })
+const Slider = ({ angle, setAngles, index }) => {
+  return (
+    <input type="range" min="-30" max="30" value={angle} onChange={(e) => {
+      setAngles(angles => {
+        const newAngles = [...angles]
+        newAngles[index] = parseInt(e.target.value)
+        return newAngles
+      })
+    }} />
+  )
+}
 
-    return (
-      null
-    )
-  }
+export function UI({ send }) {
+  const [angles, setAngles] = useState(new Array(36).fill(0))
+  const [debouncedAngles, setDebouncedAngles] = useState(new Array(36).fill(0))
+  const callback = useDebouncedCallback((newAngles) => {
+    if (!deepEqual(newAngles, debouncedAngles)) {
+      console.log("update socket")
+      send({ type: "angles", angles: newAngles })
+      setDebouncedAngles(newAngles)
+    }
+  }, 1500);
+
+  useEffect(() => {
+    callback(angles)
+  }, [angles, callback])
+
+  return (
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {angles.map((angle, index) => (
+        <Slider key={index} angle={angle} setAngles={setAngles} index={index} />
+      ))}
+    </div>
+  )
+}
 
 // import { Pane } from "tweakpane";
 
