@@ -3,7 +3,7 @@ import { useControls } from "leva"
 import React from "react"
 
 export function Sphere() {
-    const { roughness } = useControls({ roughness: { value: 1, min: 0, max: 1 } })
+    const { roughness } = useControls({ roughness: { value: 0.5, min: 30, max: 30} })
     return (
       <Center top>
         <mesh castShadow>
