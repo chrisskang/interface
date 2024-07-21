@@ -17,7 +17,7 @@ export const useSocket = () => {
 
 				setConnected(true)
 
-				send("login", { client: "interface" })
+				send({ type: "login", client: "interface" })
 			}
 
 			socket.current.onmessage = (event) => {
@@ -54,8 +54,8 @@ export const useSocket = () => {
 		if (socket) return () => socket.current?.close()
 	}, [])
 
-	const send = (type, data) => {
-		socket.current?.send(JSON.stringify({ type, data }))
+	const send = (data) => {
+		socket.current?.send(JSON.stringify(data))
 	}
 
 	return {
