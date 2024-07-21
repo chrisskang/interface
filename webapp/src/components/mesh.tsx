@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber"
+import React from "react"
 import { type RefObject, useRef } from "react"
 import { type BufferAttribute, DoubleSide } from "three"
 
@@ -83,6 +84,7 @@ export function Comp({ positions }: { positions: RefObject<number[]> }) {
 			//positionBuffer.current.array.set(new Float32Array(positions.current),0)
 			positionBuffer.current.array = new Float32Array(positions.current)
 			positionBuffer.current.needsUpdate = true
+			console.log(positionBuffer.current.array)
 		}
 	})
 
