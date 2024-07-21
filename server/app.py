@@ -24,6 +24,16 @@ async def handler(client):
         if obj["type"] == "login":
             addToClientSet(obj, client)
 
+        elif obj["type"] == "positions":
+
+            for intClient in interface_clients :
+                    await intClient.send(message)
+                    print("sent to interface_clients")
+            else:
+                    print("no interface client found")
+                
+
+            
         elif obj["type"] == "angles":
             if client in interface_clients :
                 print("this is from interface_client")
