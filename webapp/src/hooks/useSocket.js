@@ -58,11 +58,10 @@ export const useSocket = () => {
 		socket.current?.send(JSON.stringify({ type, data }))
 	}
 
-
-
 	return {
 		socket: socket.current,
 		connected,
+		angles,
 		send
 	}
 }
