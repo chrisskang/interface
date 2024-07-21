@@ -8,9 +8,8 @@ import { Env } from './components/env'
 import { DoubleSide } from 'three'
 import { Comp } from './components/mesh'
 import { Pane } from 'tweakpane'
-import {ui} from './components/ui'
+import { UI } from './components/ui'
 
-const UI = ui
 const ws = new WebSocket('ws://localhost:8001')
 
 
@@ -23,7 +22,7 @@ export default function App() {
       <group position={[0, 0, 0]}>
         {/* <Sphere /> */}
         <Comp/>
-        
+        <UI/>
         <Grid
 				position={[0, -1.1, 0]}
 				infiniteGrid

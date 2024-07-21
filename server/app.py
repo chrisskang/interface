@@ -28,8 +28,10 @@ async def handler(client):
         elif obj["type"] == "angle":
             if client in interface_clients :
                 print("this is from interface_client")
+                for ghClient in grasshopper_clients :
+                    await ghClient.send(message)
+                    print("sent to gh_clients")
 
-                print("sent to grasshopper_clients")
 
             elif client in grasshopper_clients:
                 print("this is from grasshopper_clients")
