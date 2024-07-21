@@ -14,6 +14,8 @@ async def handler(client):
     async for message in client:
         print(message)
         obj = json.loads(message)
+        #todo
+        #kill the unwanted clients
 
         try:
             assert "type" in obj
@@ -27,6 +29,8 @@ async def handler(client):
         elif obj["type"] == "positions":
 
             for intClient in interface_clients :
+                if intClient.connected:
+
                     await intClient.send(message)
                     print("sent to interface_clients")
             else:
