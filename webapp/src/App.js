@@ -1,6 +1,6 @@
 import { Grid, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { default as React, default as React } from 'react'
+import { default as React } from 'react'
 import { Env } from './components/env'
 import { Comp } from './components/mesh'
 import { UI } from './components/ui'
