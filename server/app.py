@@ -2,10 +2,9 @@
 
 import asyncio
 import json
-import websockets
-
 import logging
 
+import websockets
 
 interface_clients = set()
 grasshopper_clients = set()
@@ -15,18 +14,17 @@ async def handler(client):
     async for message in client:
         print(message)
         obj = json.loads(message)
-        
+
         try:
             assert "type" in obj
         except AssertionError:
             print("no type in message")
             return
-        
+
         if obj["type"] == "login":
             addToClientSet(obj, client)
-            
 
-        elif obj["type"] == "angle":
+        elif obj["type"] == "angles":
             if client in interface_clients :
                 print("this is from interface_client")
                 for ghClient in grasshopper_clients :
@@ -38,7 +36,7 @@ async def handler(client):
 
             elif client in grasshopper_clients:
                 print("this is from grasshopper_clients")
-                for intClient in interface_clients :
+                for intClient in interface_clients:
                     await intClient.send(message)
                     print("sent to interface_clients")
                 else:
