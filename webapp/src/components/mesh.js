@@ -25,16 +25,20 @@ export function Comp({ positions }) {
       
       //positionBuffer.current.array.set(new Float32Array(positions.current),0)
       positionBuffer.current.array = new Float32Array(positions.current)
-      positionBuffer.current.needsUpdate = true
+      positionBuffer.current.array.needsUpdate = true
+
+      console.log("positionBuffer: ", positionBuffer)
+
     }
-    console.log(positions.current)
+
   })
 
   return (
     <mesh>
       <bufferGeometry>
         <bufferAttribute
-          array = {positions}
+          //array = {positions.current.array}
+          array = {positionBuffer.current.array}
           ref={positionBuffer}
           attach='attributes-position'
           count={36}

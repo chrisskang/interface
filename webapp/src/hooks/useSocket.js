@@ -23,9 +23,12 @@ export const useSocket = () => {
 			socket.current.onmessage = (event) => {
 				if (typeof event.data === "string") {
 					const message = JSON.parse(event.data)
+	
 
 					if (message.type === "positions") {
-						positions.current = message.data["positions"]
+		
+					positions.current = message["positions"]
+					//console.log("positions.current: ", positions.current)
 					}
 				}
 			}
