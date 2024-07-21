@@ -120,6 +120,7 @@ export function Comp({ positions }: { positions: RefObject<number[]> }) {
 			}
 
 			positionBuffer.current.array = newArray
+			//positionBuffer.current.array = new Float32Array(positions.current)
 			positionBuffer.current.needsUpdate = true
 		}
 	})
