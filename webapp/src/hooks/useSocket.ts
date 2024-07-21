@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 
 export const useSocket = () => {
-	const socket = useRef(undefined)
+	const socket = useRef<WebSocket | undefined>(undefined)
 	const [connected, setConnected] = useState(false)
 
 	const positions = useRef(new Array(108).fill(0))
@@ -38,7 +38,7 @@ export const useSocket = () => {
 
 				setConnected(false)
 
-				socket.current = null
+				socket.current = undefined
 
 				setTimeout(() => {
 					connect()
@@ -54,14 +54,18 @@ export const useSocket = () => {
 		if (socket) return () => socket.current?.close()
 	}, [])
 
-	const send = (data) => {
-		socket.current?.send(JSON.stringify(data))
+	const send = (data: any) => {
+		if (socket.current) {
+			if (socket.current.readyState === WebSocket.OPEN) {
+				socket.current.send(JSON.stringify(data))
+			}
+		}
 	}
 
 	return {
 		socket: socket.current,
 		connected,
 		positions,
-		send
+		send,
 	}
 }
