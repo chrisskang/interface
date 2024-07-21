@@ -30,6 +30,8 @@ async def handler(client):
                 for ghClient in grasshopper_clients :
                     await ghClient.send(message)
                     print("sent to gh_clients")
+                else:
+                    print("no interface client found")
 
 
             elif client in grasshopper_clients:
@@ -37,29 +39,39 @@ async def handler(client):
                 for intClient in interface_clients:
                     await intClient.send(message)
                     print("sent to interface_clients")
+                else:
+                    print("no grasshopper client found")
 
-                for pythonClient in python_clients:
-                    await pythonClient.send(message)
+                for pyClients in python_clients :
+                    await pyClients.send(message)
                     print("sent to python_clients")
-
+                else:
+                    print("no python client found")
+                
 
             elif client in python_clients:
                 print("this is from python_clients")
-
-
+                for intClient in interface_clients :
+                    await intClient.send(message)
+                    print("sent to interface_clients")
+                else:
+                    print("no python client found")
+            
+              
 
 def addToClientSet(obj, websocket):
+ 
     if obj["client"] == "interface":
             interface_clients.add(websocket)
             print("interface client added")
-    elif obj["type"] == "login":
-        if obj["client"] == "gh":
-            grasshopper_clients.add(websocket)
-            print("gh client added")
-    elif obj["type"] == "login":
-        if obj["client"] == "py":
-            python_clients.add(websocket)
-            print("py client added")
+
+    elif obj["client"] == "gh":
+        grasshopper_clients.add(websocket)
+        print("gh client added")
+
+    elif obj["client"] == "py":
+        python_clients.add(websocket)
+        print("py client added")
 
 
 async def main():
