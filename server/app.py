@@ -50,31 +50,34 @@ async def handler(websocket):
 
 async def startListening(websocket):
     #when client is connected, start listening for messages
+    global counter
     if websocket.open:
         async for message in websocket:
-            print(message)
+            counter += 1
+            #print message with client name
+            clientType = "interface" if websocket in interface_clients else "gh" if websocket in grasshopper_clients else "py" if websocket in python_clients else "unknown"
+            print("message{0} from {1}".format(counter, clientType), end = "")
             message = json.loads(message)
-
-            await route(message, websocket)
+            if not message["type"] == "login":
+                await route(message, websocket)
     
 
 async def route(msg, client):
-    global counter
-    counter += 1
+
     if client in interface_clients:
-        print("message{0} received from interface_clients".format(counter))
         #await sendMessageToClient("gh", msg)
         await sendMessageToClient("py", msg)
 
     elif client in grasshopper_clients:
-        print("message{0} received from grasshopper_clients".format(counter)) 
-        await sendMessageToClient("interface", msg)
-        await sendMessageToClient("py", msg)
+        if msg["type"] == "positions":
+            await sendMessageToClient("interface", msg)
+        if msg["type"] == "angles":
+            await sendMessageToClient("py", msg)
     
     elif client in python_clients:
-        print("message{0} received from py_clients".format(counter))
-        await sendMessageToClient("interface", msg)
+        #await sendMessageToClient("interface", msg)
         await sendMessageToClient("gh", msg)
+    print("")
 
 
 async def sendMessageToClient(clientType, msg):
@@ -82,26 +85,15 @@ async def sendMessageToClient(clientType, msg):
         for intClient in interface_clients :
             if intClient.open:
                 await intClient.send(json.dumps(msg))
-                print("message{0} sent to interface_clients".format(counter))
+                print(" -> to interface")
     elif clientType == "gh":
         for ghClient in grasshopper_clients :
             await ghClient.send(json.dumps(msg))
-            print("message{0} sent to gh_clients".format(counter))
+            print(" -> to gh")
     elif clientType == "py":
         for pyClients in python_clients :
             await pyClients.send(json.dumps(msg))
-            print("message{0} sent to py_clients".format(counter))
-
-def check_payload_size(message, max_size=65536):
-    print("Raw message:", message)
-    print("Message type:", type(message))
-    message_size = len(message)
-    print("String length:", message_size)
-    encoded = message.encode('utf-8')
-    print("UTF-8 encoded length:", len(encoded))
-    print("Message size:", message_size)
-
-
+            print(" -> to py")
 
 
 def compress_json_string(json_string):
@@ -159,9 +151,9 @@ async def main():
     async with websockets.serve(handler, "", 8001):
         await asyncio.Future()  # run forever
 
-logger = logging.getLogger('websockets')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+# logger = logging.getLogger('websockets')
+# logger.setLevel(logging.DEBUG)
+# logger.addHandler(logging.StreamHandler())
 
 
 if __name__ == "__main__":

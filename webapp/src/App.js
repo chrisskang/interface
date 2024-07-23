@@ -35,10 +35,10 @@ export default function App() {
 				<ambientLight intensity={0.015} />
 				<spotLight position={[1, 5, 3]} intensity={3} angle={0.2} penumbra={1}  castShadow shadow-mapSize={2048} />
       			<spotLight position={[0, 10, -10]} intensity={3} angle={0.04} penumbra={2} castShadow shadow-mapSize={1024} />
-				<mesh receiveShadow position={[0, -1.31, 0]} rotation-x={-Math.PI / 2}>
+				{/* <mesh receiveShadow position={[0, -1.31, 0]} rotation-x={-Math.PI / 2}>
 					<planeGeometry args={[50, 50]} />
 					<MeshReflectorMaterial />
-				</mesh>
+				</mesh> */}
 	
 				<Comp positions={positions} />
 				<hemisphereLight intensity={0.5} />

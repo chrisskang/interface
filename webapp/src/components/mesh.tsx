@@ -103,7 +103,7 @@ export function Comp({ positions }: { positions: RefObject<number[]>, delta: Num
 				/>
 			</bufferGeometry>
 			
-			<meshStandardMaterial side={DoubleSide} color = {"0xffffff"} metalness={1}/>
+			<meshStandardMaterial wireframe side={DoubleSide} color = {"white"} metalness={1}/>
 			
 		</mesh>
 	)
