@@ -1,6 +1,5 @@
-import { Edges, Outlines } from "@react-three/drei"
+import { Edges, MeshReflectorMaterial } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
-import React from "react"
 import { type RefObject, useRef } from "react"
 import { type BufferAttribute, DoubleSide, MathUtils } from "three"
 
@@ -48,7 +47,7 @@ const normals = new Float32Array([
 	0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
 ])
 
-export function Comp({ positions }: { positions: RefObject<number[]>, delta: Number }) {
+export function TriangleMesh({ positions }: { positions: RefObject<number[]>, delta: Number }) {
 	const positionBuffer = useRef<BufferAttribute>(null)
 
 	useFrame((_,delta ) => {
@@ -74,6 +73,7 @@ export function Comp({ positions }: { positions: RefObject<number[]>, delta: Num
 	})
 
 	return (
+		<>
 		<mesh scale={0.001} castShadow receiveShadow>
 			<bufferGeometry>
 				<bufferAttribute
@@ -103,8 +103,12 @@ export function Comp({ positions }: { positions: RefObject<number[]>, delta: Num
 				/>
 			</bufferGeometry>
 			
-			<meshStandardMaterial wireframe side={DoubleSide} color = {"white"} metalness={1}/>
+			<meshLambertMaterial side={DoubleSide} color = {"black"}/>
+
+			<Edges linewidth={2} threshold={0} color={"white"} renderOrder={0} />
+			
 			
 		</mesh>
+		</>
 	)
 }

@@ -1,6 +1,7 @@
 import deepEqual from "deep-equal"
 import React, { useEffect, useState } from "react"
 import { useDebouncedCallback } from "use-debounce"
+import { useControls, button, folder} from 'leva'
 
 const Slider = ({ angle, setAngles, index }) => {
   return (
@@ -25,6 +26,8 @@ const Slider = ({ angle, setAngles, index }) => {
 }
 
 export function UI({ send }) {
+
+
   const [angles, setAngles] = useState(new Array(36).fill(0).map(() => ({ angle: 0, toggle: 0 })))
 
   const [debouncedAngles, setDebouncedAngles] = useState(new Array(36).fill(0))
