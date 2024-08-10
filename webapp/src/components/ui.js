@@ -13,7 +13,8 @@ const Slider = ({ angle, setAngles, index }) => {
           return newAngles
         })
       }} />
-      <span>|</span>  
+      <span>{angle.angle}°</span> 
+      
         <input type="checkbox" value={angle.toggle} onChange={(e) => {
         setAngles(angles => {
           const newAngles = [...angles]
@@ -23,6 +24,7 @@ const Slider = ({ angle, setAngles, index }) => {
       }} />
     </div>
   )
+  
 }
 
 export function UI({ send }) {
