@@ -23,7 +23,7 @@ start_time = 0
 end_time = 0
 
 # Serial object creation
-#ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=TIMEOUT)
+ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=TIMEOUT)
 
 async def send_command(id, commands):
     """ Send commands to a specified ID.
@@ -100,6 +100,7 @@ async def send_command(id, commands):
     # 1바이트 단위로 끊어서 출력
     #formatted_message = ' '.join(f'{byte:02x}' for byte in message)
     #print(f"Sent command: {formatted_message}")
+    return
 
 async def read_response():
     """Read the response from the Arduino."""
