@@ -10,6 +10,73 @@ import logging
 # logger.setLevel(logging.DEBUG)
 # logger.addHandler(logging.StreamHandler())
 
+import serial
+import time
+
+# Serial port settings
+SERIAL_PORT = '/dev/tty.usbserial-1110'  # Change this to your actual port
+BAUD_RATE = 115200
+TIMEOUT = 1
+
+# Serial object creation
+ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=TIMEOUT)
+
+def send_command(address, command, data=None):
+    """ Send a command to a specified address with optional data.
+    
+    :param address: Address to send data to (0 for all units)
+    :param command: Command character ('G', 'D', 'X', 'T', 'C')
+    :param data: Data to send if the command is 'D' or 'X' (list of integers)
+    """
+    message = f"{address}{command}"
+    if data:
+        message += ' ' + ' '.join(map(str, data))
+    message += '\n'  # Append newline character
+
+    ser.write(message.encode())
+    print(f"Sent command: {message.strip()}")
+
+def send_command_and_measure_time(address, command, data=None):
+    """ Send a command and measure the time taken to receive the response.
+    
+    :param address: Address to send data to (0 for all units)
+    :param command: Command character ('G', 'D', 'X', 'T', 'C')
+    :param data: Data to send if the command is 'D' or 'X' (list of integers)
+    """
+    send_command(address, command, data)
+    
+    start_time = time.time()  # Record the start time
+    response = None
+    
+    # Wait for response with a timeout
+    while time.time() - start_time < TIMEOUT:
+        response = read_response()
+        if response:
+            break
+        # Reduce the sleep time to make the response detection more responsive
+        time.sleep(0.001)  # Sleep briefly to avoid busy-waiting
+
+    end_time = time.time()  # Record the end time
+    elapsed_time = end_time - start_time
+    if response:
+        print(f"Response received in {elapsed_time:.4f} seconds.")
+    else:
+        print(f"No response received within {TIMEOUT} seconds.")
+
+
+def read_response():
+    """ Read the response from the Arduino. """
+    if ser.in_waiting > 0:
+        response = ser.readline().decode().strip()
+        print(f"Received response: {response}")
+        return response
+    return None
+
+
+
+
+
+
 #default 0
 defaultData = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
 #toLoopGoal
@@ -53,9 +120,10 @@ async def listen():
 async def onReceived(message):
     # print ("Received message: {0}".format(message))
     # print ("")
+    msgBuffer = json.dumps(message)
+    if "toArd" in msgBuffer:
+        await sendToArduino(msgBuffer)
     return
-
-
 
 
 async def send_loop_between(totalTime, frameRate, goalRange):
@@ -136,6 +204,31 @@ async def takeInput():
     print("")
     return message
 
+async def sendToArduino(user_input):
+    if user_input:
+                address = None
+                command = None
+                data = None
+                
+                if len(user_input) > 1:
+                    address = user_input[0]
+                    command = user_input[1]
+                    data_str = user_input[2:].strip()
+                    
+                    if data_str:
+                        try:
+                            data = list(map(int, data_str.split()))
+                        except ValueError:
+                            print("Error: Data values should be integers.")
+                
+                if address is not None and command is not None:
+                    try:
+                        address = int(address)
+                        send_command_and_measure_time(address, command, data)
+                    except ValueError as e:
+                        print(f"Error parsing address: {e}")
+                else:
+                    print("Invalid input. Format should be 'addresscommand [data]'.")
 
 
 async def login(websocket):
@@ -151,6 +244,8 @@ async def main():
         global websocket_global
         websocket_global = websocket
         await listenAndSend()
+
+
         
 if __name__ == "__main__":
     asyncio.run(main())
