@@ -172,6 +172,7 @@ async def send_command_to_arduino(id, commands):
 async def listen_from_arduino():
     """Read the response from the Arduino."""
     response = bytearray()
+    print ("tryingt to read")
     
     while True:
         chunk = arduino_reader_global.read(1)

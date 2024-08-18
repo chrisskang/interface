@@ -12,7 +12,7 @@
 #include <Wire.h>
 #include <INA226_WE.h>
 
-#define I2C_ADDRESS 0x45
+#define I2C_ADDRESS 0x44
 
 
 
