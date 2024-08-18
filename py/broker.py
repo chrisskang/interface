@@ -308,25 +308,30 @@ async def ard_input():
 async def main():
     uri = "ws://localhost:8001"
     
-    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-        url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
-    )
+    try:
+        async with websockets.connect(uri) as websocket:
+            await server_login(websocket)
+            global websocket_global
+            websocket_global = websocket
+
+            # Open the serial port
+            arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+            url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
+            )
+        
+            global arduino_reader_global, arduino_writer_global
+            arduino_reader_global = arduino_reader
+            arduino_writer_global = arduino_writer
+
+            server_task = asyncio.create_task(listen_from_server())
+            arduino_task = asyncio.create_task(listen_from_arduino())
+            user_input_task = asyncio.create_task(producer())
+
+            await asyncio.gather(server_task, arduino_task, user_input_task)
+            #await asyncio.gather(server_task, user_input_task)
+    except Exception as e:
+        print(f"An error occurred: {e}")
     
-    global arduino_reader_global, arduino_writer_global
-    arduino_reader_global = arduino_reader
-    arduino_writer_global = arduino_writer
-
-    async with websockets.connect(uri) as websocket:
-        await server_login(websocket)
-        global websocket_global
-        websocket_global = websocket
-
-        server_task = asyncio.create_task(listen_from_server())
-        arduino_task = asyncio.create_task(listen_from_arduino())
-        user_input_task = asyncio.create_task(producer())
-
-        await asyncio.gather(server_task, arduino_task, user_input_task)
-        #await asyncio.gather(server_task, user_input_task)
 
 
 if __name__ == "__main__":
