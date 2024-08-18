@@ -105,6 +105,7 @@ async def send_command(id, commands):
 async def read_response():
     """Read the response from the Arduino."""
     response = bytearray()
+    print ("tryingt to read")
     
     while True:
         chunk = ser.read(1)

@@ -23,28 +23,30 @@ void setup() {
   Serial.begin(115200);
   pinMode(6,OUTPUT);
   digitalWrite(6,LOW);
-  pinMode(9,OUTPUT);
-  pinMode(10,OUTPUT);
-
-  digitalWrite(9,HIGH);
-  digitalWrite(10,HIGH);
+//  pinMode(9,OUTPUT);
+//  pinMode(10,OUTPUT);
+//
+//  digitalWrite(9,HIGH);
+//  digitalWrite(10,HIGH);
   
-  
+  Serial.println("E");
   delay(500);
   pwm.begin();
-  pwm.setOscillatorFrequency(27000000);
+  //pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(SERVO_FREQ);
   
   delay(10);
-
+  
   Serial.println("Enter pulse length in microseconds (440-2465):");
 }
 
 
 
 void loop() {
+  Serial.println("hihg");
   pwm.setPWM(7,4096,0);
   delay(1000);
+  Serial.println("low");
   pwm.setPWM(7,0,4096);
   delay(1000);
 }

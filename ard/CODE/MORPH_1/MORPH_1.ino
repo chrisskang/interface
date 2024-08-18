@@ -1,11 +1,11 @@
 // ------------------------------
 //    ID init
 // ------------------------------
-#define SetID  13
+#define SetID  1
 const int unitID[2] = { SetID * 2 - 1, SetID * 2 };
 boolean monitoring = true;
-bool debug = false;
- 
+bool debug = true;
+bool AS = false;
 // ------------------------------
 //    Pinmap 
 // ------------------------------
@@ -76,7 +76,7 @@ int rxBufferIndex = 0;          // 수신 버퍼 인덱스
 // ------------------------------
 #include <Adafruit_PWMServoDriver.h>
 Adafruit_PWMServoDriver PCA9685 = Adafruit_PWMServoDriver();
-
+// Set 3: 0x4F
 
 
 // ------------------------------
@@ -360,8 +360,10 @@ void loop() {
 
   // RUN
   pwmRun();
-  readAS(0);
-  readAS(1);
+  if(AS){
+    readAS(0);
+    readAS(1);
+  }
   readINA(0);
   readINA(1);
   if(debug)  Serial.println("");
