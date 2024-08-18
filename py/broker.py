@@ -10,27 +10,102 @@ import logging
 # logger.setLevel(logging.DEBUG)
 # logger.addHandler(logging.StreamHandler())
 
-import serial
+import serial_asyncio
 import time
+
+from utils import lerp
+
+monitoring = False
 
 # Serial port settings
 SERIAL_PORT = 'COM4'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 
-monitoring = False
 start_time = 0
 end_time = 0
 
-# Serial object creation
-ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=TIMEOUT)
 
-async def send_command(id, commands):
-    """ Send commands to a specified ID.
+#default 0
+defaultData = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
+#toLoopGoal
+loopGoal = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
 
-    :param id: ID to send data to (uint8_t)
-    :param commands: List of (header, value) tuples
-    """
+#toLoopBetween
+loopBetween ={"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}]}
+#twist
+twist = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": 30, "toggle": 1}]}
+#lift
+lift = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
+
+
+global noise
+
+
+#-----------------Server Communication-----------------
+async def server_login(websocket):
+    loginData = {"type": "login","client":"py" }
+    loginData = json.dumps(loginData)
+    await websocket.send(loginData)
+
+async def listen_from_server():
+
+    async for message in websocket_global:
+        await onReceived(message)
+
+async def onReceived(message):
+    print ("Received message: {0}".format(message))
+    print ("")
+
+async def send_loop_between(totalTime, frameRate, goalRange):
+    # generate lerped Json from loopGoal
+    totalFrame = totalTime * frameRate
+    for i in range(int(totalFrame)):
+
+        bufferDict = await getBufferDictRandom(goalRange, i, totalFrame)
+
+        await websocket_global.send(json.dumps(bufferDict))
+        await asyncio.sleep(1/frameRate)
+
+async def getBufferDictRandom(goal, currentFrame, totalFrame):
+    bufferDict = defaultData
+    
+
+    for i in range(len(goal["angles"])):
+        noise = PerlinNoise(octaves=8, seed=i)
+            
+        angleMax = goal["angles"][i]["a"]
+        toggle = goal["angles"][i]["t"]
+        bufferDict["angles"][i]["a"] = noise(i+(currentFrame/totalFrame)*10) * angleMax
+        bufferDict["angles"][i]["t"] = toggle
+
+    return bufferDict
+
+async def send_loop(totalFrame, goalAngle):
+    # generate lerped Json from loopGoal
+    for i in range(totalFrame):
+        bufferDict = getBufferDict(goalAngle, i, totalFrame)
+        print("Sending frame: ", i)
+        print(bufferDict)
+        print("")
+        await websocket_global.send(json.dumps(bufferDict))
+        await asyncio.sleep(3 / totalFrame)
+
+def getBufferDict(goal, currentFrame, totalFrame):
+    bufferDict = defaultData
+    lerpVal = currentFrame / (totalFrame - 1)  # Adjusted lerp value to start from 0 and end at 1
+
+    for i in range(len(goal["angles"])):
+        angle = lerp(defaultData["angles"][i]["a"], goal["angles"][i]["a"], lerpVal)
+        toggle = goal["angles"][i]["t"]
+        bufferDict["angles"][i]["a"] = angle
+        bufferDict["angles"][i]["t"] = toggle
+    return bufferDict
+
+#-----------------Arduino Communication-----------------
+
+def send_command_to_arduino(id, commands):
+
     if not (0 <= id <= 255):
         print(f"Error: ID {id} out of range. Must be between 0 and 255.")
         return
@@ -39,14 +114,12 @@ async def send_command(id, commands):
         print("Error: No commands provided.")
         return
 
-    message = bytearray()
-    message.append(id)  # ID를 uint8_t 형식으로 추가
+    message = bytearray([id])  # ID를 uint8_t 형식으로 추가
 
     for header, value in commands:
         if len(header) != 1 or not header.isalpha():
             print(f"Error: Header '{header}' must be a single alphabetic character.")
             return
-        
         message.append(ord(header))  # Header를 ASCII 값으로 추가
 
         if header in ['A', 'V','U']:
@@ -90,24 +163,38 @@ async def send_command(id, commands):
             print(f"Error: Unsupported header '{header}'.")
             return
 
-    # 패킷 종결자를 추가 (e.g., newline character)
     message.append(ord('\n'))
+    arduino_writer_global.write(message)
+    print(f"Sent command: {message.hex()}")
 
     if monitoring: print([hex(b) for b in message])
 
-    ser.write(message)  # 바이트 배열을 전송
-    # print(f"Sent command: {message.hex()}")
-    # 1바이트 단위로 끊어서 출력
-    #formatted_message = ' '.join(f'{byte:02x}' for byte in message)
-    #print(f"Sent command: {formatted_message}")
-    return
+def parse_input(user_input):
+    parts = user_input.split()
+    if len(parts) < 2:
+        print("Error: Input must contain at least ID and one command.")
+        return None, []
 
-async def read_response():
+    try:
+        id = int(parts[0])
+    except ValueError:
+        print("Error: ID should be an integer.")
+        return None, []
+
+    commands = []
+    for part in parts[1:]:
+        header = part[0]
+        value = part[1:].strip() if len(part) > 1 else ''
+        commands.append((header, value))
+    
+    return id, commands
+
+def read_response():
     """Read the response from the Arduino."""
     response = bytearray()
     
     while True:
-        chunk = ser.read(1)
+        chunk = arduino_reader_global.read(1)
         if not chunk:
             break  # Stop reading if no data is available
         
@@ -196,155 +283,33 @@ def process_response(response):
         else:
             print(f"Unknown header: {header}")
 
-def send_command_and_measure_time(id, commands):
-    """ Send a command and measure the time taken to receive the response.
-    
-    :param id: ID to send data to (uint8_t)
-    :param commands: List of (header, value) tuples
-    """
-    send_command(id, commands)
-    
-    start_time = time.time()  # Record the start time
-    response = read_response()  # Wait for response with a timeout
+async def arduino_communication(arduino_reader, arduino_writer):
+    while True:
+        try:
+            # Read from Arduino
+            data = await arduino_reader.readline()
+            if data:
+                print(f"Received from Arduino: {data.decode().strip()}")
+                
+            # You can add more Arduino-specific logic here
+            await asyncio.sleep(0.1)  # Small delay to prevent busy-waiting
+        except Exception as e:
+            print(f"Arduino communication error: {e}")
+            await asyncio.sleep(1)  # Wait before trying to reconnect
 
-def parse_input(user_input):
-    """ Parse user input into ID and list of (header, value) tuples.
-    
-    :param user_input: Input string from user
-    :return: Tuple of ID and list of (header, value) tuples
-    """
-    parts = user_input.split()
-    if len(parts) < 2:
-        print("Error: Input must contain at least ID and one command.")
-        return None, []
-
-    try:
-        id = int(parts[0])
-    except ValueError:
-        print("Error: ID should be an integer.")
-        return None, []
-
-    commands = []
-    for part in parts[1:]:
-        header = part[0]
-        value = part[1:].strip() if len(part) > 1 else ''
-        commands.append((header, value))
-    
-    return id, commands
-
-
-
-
-
-#default 0
-defaultData = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
-#toLoopGoal
-loopGoal = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
-
-#toLoopBetween
-loopBetween ={"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}]}
-#twist
-twist = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": 30, "toggle": 1}]}
-#lift
-lift = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
-
-
-global noise
-
-async def listenAndSend():
-    # await asyncio.gather(
-    #     listen(websocket),
-    #     send(websocket)
-    # )
-    listen_task = asyncio.create_task(listen())
-    send_task = asyncio.create_task(send())
-    
-    done, pending = await asyncio.wait(
-        [listen_task, send_task],
-        return_when=asyncio.FIRST_COMPLETED,
-    )
-    
-    for task in pending:
-        task.cancel()
-
-def lerp(a, b, t):
-    return a * (1.0 - t) + (b * t)
-
-async def listen():
-
-    async for message in websocket_global:
-        await onReceived(message)
-
-async def onReceived(message):
-    # print ("Received message: {0}".format(message))
-    # print ("")
-    msgBuffer = json.dumps(message)
-    if "toArd" in msgBuffer:
-        await sendToArduino(msgBuffer)
-    return
-
-
-async def send_loop_between(totalTime, frameRate, goalRange):
-    # generate lerped Json from loopGoal
-    totalFrame = totalTime * frameRate
-    for i in range(int(totalFrame)):
-
-        bufferDict = await getBufferDictRandom(goalRange, i, totalFrame)
-
-        await websocket_global.send(json.dumps(bufferDict))
-        await asyncio.sleep(1/frameRate)
-
-async def getBufferDictRandom(goal, currentFrame, totalFrame):
-    bufferDict = defaultData
-    
-
-    for i in range(len(goal["angles"])):
-        noise = PerlinNoise(octaves=8, seed=i)
-            
-        angleMax = goal["angles"][i]["a"]
-        toggle = goal["angles"][i]["t"]
-        bufferDict["angles"][i]["a"] = noise(i+(currentFrame/totalFrame)*10) * angleMax
-        bufferDict["angles"][i]["t"] = toggle
-
-    return bufferDict
-
-async def send_loop(totalFrame, goalAngle):
-    # generate lerped Json from loopGoal
-    for i in range(totalFrame):
-        bufferDict = getBufferDict(goalAngle, i, totalFrame)
-        print("Sending frame: ", i)
-        print(bufferDict)
-        print("")
-        await websocket_global.send(json.dumps(bufferDict))
-        await asyncio.sleep(3 / totalFrame)
-
-def getBufferDict(goal, currentFrame, totalFrame):
-    bufferDict = defaultData
-    lerpVal = currentFrame / (totalFrame - 1)  # Adjusted lerp value to start from 0 and end at 1
-
-    for i in range(len(goal["angles"])):
-        angle = lerp(defaultData["angles"][i]["a"], goal["angles"][i]["a"], lerpVal)
-        toggle = goal["angles"][i]["t"]
-        bufferDict["angles"][i]["a"] = angle
-        bufferDict["angles"][i]["t"] = toggle
-    return bufferDict
-    
-    
+#-----------------Input Producer-----------------
 async def producer():
     while True:
         input = await aioconsole.ainput("Choose input stream (manual : m / auto : a): ")
-
         if input == "a" or input == "auto":
             asyncio.create_task(send_loop_between(180, 2, loopBetween))
             print("Sending values 0-4 in the background. You can continue entering commands.")
-
         elif input == "" or input == "m" or input == "manual":
-            await ardInput()
-            
+            await ard_input()
         else:
             print("Invalid input")
 
-async def ardInput():
+async def ard_input():
     user_input = await aioconsole.ainput("Enter command (e.g., '1 S', '1 A324', '1 C32', '1 A324 C32', '1 L0,100,250'): ")
     if user_input:
         if user_input == '?':
@@ -366,42 +331,37 @@ async def ardInput():
 
         if id is not None and commands:
             start_time = time.time()
-            await send_command(id, commands)
-            response = await read_response()
+
+            send_command_to_arduino(id, commands)
+            read_response()
+
             end_time = time.time()  # Record the end time
             elapsed_time = end_time - start_time
             print(f"Response received in {elapsed_time:.4f} seconds.")
-            #send_command_and_measure_time(id, commands)
-
-async def send():
-    while True:
-        try:
-            message = await producer()
-            
-            if message:
-                assert isinstance(message, str)
-                await websocket_global.send(message)
-        except AssertionError:
-            print("Message is not a string")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
-
-async def login(websocket):
-    loginData = {"type": "login","client":"py" }
-    loginData = json.dumps(loginData)
-    await websocket.send(loginData)
-    #await websocket.send(json.dumps(defaultData))
 
 async def main():
     uri = "ws://localhost:8001"
+    
+    # arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+    #     url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
+    # )
+    
+    # global arduino_reader_global, arduino_writer_global
+    # arduino_reader_global = arduino_reader
+    # arduino_writer_global = arduino_writer
+
     async with websockets.connect(uri) as websocket:
-        await login(websocket)
+        await server_login(websocket)
         global websocket_global
         websocket_global = websocket
-        await listenAndSend()
+
+        server_task = asyncio.create_task(listen_from_server())
+        #arduino_task = asyncio.create_task(arduino_communication())
+        user_input_task = asyncio.create_task(producer())
+
+        #await asyncio.gather(server_task, arduino_task, user_input_task)
+        await asyncio.gather(server_task, user_input_task)
 
 
-        
 if __name__ == "__main__":
     asyncio.run(main())
