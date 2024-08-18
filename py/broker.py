@@ -13,7 +13,7 @@ import logging
 import serial_asyncio
 import time
 
-from utils import lerp
+from utils import lerp, parse_input
 
 monitoring = False
 
@@ -104,7 +104,7 @@ def getBufferDict(goal, currentFrame, totalFrame):
 
 #-----------------Arduino Communication-----------------
 
-def send_command_to_arduino(id, commands):
+async def send_command_to_arduino(id, commands):
 
     if not (0 <= id <= 255):
         print(f"Error: ID {id} out of range. Must be between 0 and 255.")
@@ -169,27 +169,7 @@ def send_command_to_arduino(id, commands):
 
     if monitoring: print([hex(b) for b in message])
 
-def parse_input(user_input):
-    parts = user_input.split()
-    if len(parts) < 2:
-        print("Error: Input must contain at least ID and one command.")
-        return None, []
-
-    try:
-        id = int(parts[0])
-    except ValueError:
-        print("Error: ID should be an integer.")
-        return None, []
-
-    commands = []
-    for part in parts[1:]:
-        header = part[0]
-        value = part[1:].strip() if len(part) > 1 else ''
-        commands.append((header, value))
-    
-    return id, commands
-
-def read_response():
+async def listen_from_arduino():
     """Read the response from the Arduino."""
     response = bytearray()
     
@@ -283,20 +263,6 @@ def process_response(response):
         else:
             print(f"Unknown header: {header}")
 
-async def arduino_communication(arduino_reader, arduino_writer):
-    while True:
-        try:
-            # Read from Arduino
-            data = await arduino_reader.readline()
-            if data:
-                print(f"Received from Arduino: {data.decode().strip()}")
-                
-            # You can add more Arduino-specific logic here
-            await asyncio.sleep(0.1)  # Small delay to prevent busy-waiting
-        except Exception as e:
-            print(f"Arduino communication error: {e}")
-            await asyncio.sleep(1)  # Wait before trying to reconnect
-
 #-----------------Input Producer-----------------
 async def producer():
     while True:
@@ -342,13 +308,13 @@ async def ard_input():
 async def main():
     uri = "ws://localhost:8001"
     
-    # arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-    #     url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
-    # )
+    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+        url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
+    )
     
-    # global arduino_reader_global, arduino_writer_global
-    # arduino_reader_global = arduino_reader
-    # arduino_writer_global = arduino_writer
+    global arduino_reader_global, arduino_writer_global
+    arduino_reader_global = arduino_reader
+    arduino_writer_global = arduino_writer
 
     async with websockets.connect(uri) as websocket:
         await server_login(websocket)
@@ -356,11 +322,11 @@ async def main():
         websocket_global = websocket
 
         server_task = asyncio.create_task(listen_from_server())
-        #arduino_task = asyncio.create_task(arduino_communication())
+        arduino_task = asyncio.create_task(listen_from_arduino())
         user_input_task = asyncio.create_task(producer())
 
-        #await asyncio.gather(server_task, arduino_task, user_input_task)
-        await asyncio.gather(server_task, user_input_task)
+        await asyncio.gather(server_task, arduino_task, user_input_task)
+        #await asyncio.gather(server_task, user_input_task)
 
 
 if __name__ == "__main__":
