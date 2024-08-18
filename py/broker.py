@@ -172,10 +172,10 @@ async def send_command_to_arduino(id, commands):
 async def listen_from_arduino():
     """Read the response from the Arduino."""
     response = bytearray()
-    print ("tryingt to read")
+    print ("listening from arduino")
     
     while True:
-        chunk = arduino_reader_global.read(1)
+        chunk = await arduino_reader_global.read(1)
         if not chunk:
             break  # Stop reading if no data is available
         
@@ -297,40 +297,41 @@ async def ard_input():
         id, commands = parse_input(user_input)
 
         if id is not None and commands:
-            start_time = time.time()
+            # start_time = time.time()
 
-            send_command_to_arduino(id, commands)
+            await send_command_to_arduino(id, commands)
 
-            end_time = time.time()  # Record the end time
-            elapsed_time = end_time - start_time
-            print(f"Response received in {elapsed_time:.4f} seconds.")
+            # end_time = time.time()  # Record the end time
+            # elapsed_time = end_time - start_time
+            # print(f"Response received in {elapsed_time:.4f} seconds.")
 
 async def main():
     uri = "ws://localhost:8001"
     
-    try:
-        async with websockets.connect(uri) as websocket:
-            await server_login(websocket)
-            global websocket_global
-            websocket_global = websocket
+    # try:
+    async with websockets.connect(uri) as websocket:
+        await server_login(websocket)
+        global websocket_global
+        websocket_global = websocket
 
-            # Open the serial port
-            arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-            url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
-            )
-        
-            global arduino_reader_global, arduino_writer_global
-            arduino_reader_global = arduino_reader
-            arduino_writer_global = arduino_writer
+        # Open the serial port
+        arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+        url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
+        )
+        #To do arduino connection verification
 
-            server_task = asyncio.create_task(listen_from_server())
-            arduino_task = asyncio.create_task(listen_from_arduino())
-            user_input_task = asyncio.create_task(producer())
+        global arduino_reader_global, arduino_writer_global
+        arduino_reader_global = arduino_reader
+        arduino_writer_global = arduino_writer
 
-            await asyncio.gather(server_task, arduino_task, user_input_task)
-            #await asyncio.gather(server_task, user_input_task)
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        server_task = asyncio.create_task(listen_from_server())
+        arduino_task = asyncio.create_task(listen_from_arduino())
+        user_input_task = asyncio.create_task(producer())
+
+        await asyncio.gather(server_task, arduino_task, user_input_task)
+        #await asyncio.gather(server_task, user_input_task)
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
     
 
 
