@@ -300,7 +300,6 @@ async def ard_input():
             start_time = time.time()
 
             send_command_to_arduino(id, commands)
-            read_response()
 
             end_time = time.time()  # Record the end time
             elapsed_time = end_time - start_time
