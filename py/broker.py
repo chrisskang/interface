@@ -18,12 +18,14 @@ from utils import lerp, parse_input
 monitoring = False
 
 # Serial port settings
-SERIAL_PORT = '/dev/ttys008'  # Change this to your actual port
+SERIAL_PORT = '/dev/cu.usbmodem11402'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 
 start_time = 0
 end_time = 0
+
+response_callback = None
 
 
 #default 0
@@ -106,6 +108,8 @@ def getBufferDict(goal, currentFrame, totalFrame):
 
 async def send_command_to_arduino(inputList):
 
+    global response_event, last_response
+
     for cmdList in inputList:
         message = bytearray()
 
@@ -167,9 +171,25 @@ async def send_command_to_arduino(inputList):
             
 
         message.append(ord('\n'))
-        arduino_writer_global.write(message)
+
+       # Create a future for this command
+        response_future = asyncio.Future()
         
+        # Set the callback
+        response_callback = lambda resp: response_future.set_result(resp)
+        
+        # Send the command
+        arduino_writer_global.write(message)
         print(f"Sent command: {message.hex()}")
+
+        # Wait for the response
+        response = await response_future
+
+        print(f"Received response for command {cmdList['id']}: {response}")
+
+    response_callback = None
+        
+        
 
     # if monitoring: print([hex(b) for b in message])
 
@@ -199,13 +219,15 @@ async def listen_from_arduino():
             if monitoring: 
                 print("Byte-by-byte breakdown:")
                 print(' '.join(byte_values))  # 바이트를 공백으로 구분하여 출력
-           
-            process_response(response)
+            print ("Received response: {0}".format(response.hex()))
+            #process_response(response)
         else:
             print("No response received.")
 
 def process_response(response):
     """Process the response from Arduino."""
+
+    global response_event, last_response
     # response를 바이트 단위로 변환
     byte_values = [b for b in response]
     
@@ -270,6 +292,9 @@ def process_response(response):
         
         else:
             print(f"Unknown header: {header}")
+    if response_callback:
+        response_callback(response)
+
 
 #-----------------Input Producer-----------------
 async def producer():
