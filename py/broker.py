@@ -4,6 +4,7 @@ import aioconsole
 import websockets
 import json
 from perlin_noise import PerlinNoise
+from collections import deque
 
 import logging
 # logger = logging.getLogger('websockets')
@@ -11,7 +12,6 @@ import logging
 # logger.addHandler(logging.StreamHandler())
 
 import serial_asyncio
-import time
 
 from utils import lerp, parse_input
 
@@ -26,6 +26,9 @@ start_time = 0
 end_time = 0
 
 response_callback = None
+
+command_queue = deque()
+command_in_progress = False
 
 
 #default 0
@@ -108,17 +111,27 @@ def getBufferDict(goal, currentFrame, totalFrame):
 
 async def send_command_to_arduino(inputList):
 
-    global response_event, last_response
-
+    global command_queue
     for cmdList in inputList:
+        command_queue.append(cmdList)
+    
+    if not command_in_progress:
+        await process_command_queue()
+    
+    
+    # if monitoring: print([hex(b) for b in message])
+async def process_command_queue():
+    
+    global command_in_progress
+    
+    while command_queue:
+        command_in_progress = True
+        cmdList = command_queue.popleft()
+        
         message = bytearray()
-
-        message.append(int(cmdList['id'])) 
-
-        commands = cmdList['commands']
-
-        for cmd in commands:
-
+        message.append(int(cmdList['id']))
+        
+        for cmd in cmdList['commands']:
             header = cmd[0]
             value = cmd[1]
 
@@ -168,66 +181,55 @@ async def send_command_to_arduino(inputList):
             else:
                 print(f"Error: Unsupported header '{header}'.")
                 return
+           
             
-
-        message.append(ord('\n'))
-
-       # Create a future for this command
-        response_future = asyncio.Future()
+            # ... (keep your existing message construction logic)
         
-        # Set the callback
-        response_callback = lambda resp: response_future.set_result(resp)
+        message.append(ord('\n'))
         
         # Send the command
         arduino_writer_global.write(message)
         print(f"Sent command: {message.hex()}")
-
-        # Wait for the response
-        response = await response_future
-
-        print(f"Received response for command {cmdList['id']}: {response}")
-
-    response_callback = None
         
-        
+        # Wait for response
+        await wait_for_response()
+    
+    command_in_progress = False
 
-    # if monitoring: print([hex(b) for b in message])
+async def wait_for_response():
+    response = bytearray()
+    
+    while True:
+        chunk = await arduino_reader_global.read(1)
+        
+        if not chunk:
+            break
+        
+        response.extend(chunk)
+        
+        if len(response) >= 3 and response[-3:] == b'\x99\x88\xFF':
+            response = response[:-3]
+            break
+    
+    if response:
+        if monitoring: print(f"Received raw response: {response.decode(errors='ignore')}")
+        byte_values = [f"0x{byte:02X}" for byte in response]  # 각 바이트를 hex로 변환
+        if monitoring: 
+            print("Byte-by-byte breakdown:")
+            print(' '.join(byte_values))  # 바이트를 공백으로 구분하여 출력
+
+        process_response(response)
+    else:
+        print("No response received.")
 
 
 async def listen_from_arduino():
-    """Read the response from the Arduino."""
     while True:
-        response = bytearray()
-        
-        while True:
-            chunk = await arduino_reader_global.read(1)
-            #print(chunk)
-
-            if not chunk:
-                break  # Stop reading if no data is available
-            
-            response.extend(chunk)
-            
-            # Check if the end of message indicator (0xFF 0xFF) is found
-            if len(response) >= 3 and response[-3:] == b'\x99\x88\xFF':
-                response = response[:-3]  # Remove the end indicator
-                break
-        
-        if response:
-            if monitoring: print(f"Received raw response: {response.decode(errors='ignore')}")
-            byte_values = [f"0x{byte:02X}" for byte in response]  # 각 바이트를 hex로 변환
-            if monitoring: 
-                print("Byte-by-byte breakdown:")
-                print(' '.join(byte_values))  # 바이트를 공백으로 구분하여 출력
-            print ("Received response: {0}".format(response.hex()))
-            #process_response(response)
-        else:
-            print("No response received.")
+        await wait_for_response()
 
 def process_response(response):
     """Process the response from Arduino."""
 
-    global response_event, last_response
     # response를 바이트 단위로 변환
     byte_values = [b for b in response]
     
@@ -292,8 +294,9 @@ def process_response(response):
         
         else:
             print(f"Unknown header: {header}")
-    if response_callback:
-        response_callback(response)
+    if command_queue:
+        asyncio.create_task(process_command_queue())
+
 
 
 #-----------------Input Producer-----------------
@@ -352,10 +355,10 @@ async def main():
         
 
         server_task = asyncio.create_task(listen_from_server())
-        arduino_task = asyncio.create_task(listen_from_arduino())
+
         user_input_task = asyncio.create_task(producer())
 
-        await asyncio.gather(server_task, arduino_task, user_input_task)
+        await asyncio.gather(server_task, user_input_task)
         
         #await asyncio.gather(server_task, user_input_task)
     # except Exception as e:
