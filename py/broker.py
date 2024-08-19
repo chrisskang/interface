@@ -18,7 +18,7 @@ from utils import lerp, parse_input
 monitoring = False
 
 # Serial port settings
-SERIAL_PORT = 'COM4'  # Change this to your actual port
+SERIAL_PORT = '/dev/cu.usbmodem11402'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 
@@ -171,31 +171,33 @@ async def send_command_to_arduino(id, commands):
 
 async def listen_from_arduino():
     """Read the response from the Arduino."""
-    response = bytearray()
-    print ("listening from arduino")
-    
     while True:
-        chunk = await arduino_reader_global.read(1)
-        if not chunk:
-            break  # Stop reading if no data is available
+        response = bytearray()
         
-        response.extend(chunk)
+        while True:
+            chunk = await arduino_reader_global.read(1)
+            #print(chunk)
+
+            if not chunk:
+                break  # Stop reading if no data is available
+            
+            response.extend(chunk)
+            
+            # Check if the end of message indicator (0xFF 0xFF) is found
+            if len(response) >= 3 and response[-3:] == b'\x99\x88\xFF':
+                response = response[:-3]  # Remove the end indicator
+                break
         
-        # Check if the end of message indicator (0xFF 0xFF) is found
-        if len(response) >= 3 and response[-3:] == b'\x99\x88\xFF':
-            response = response[:-3]  # Remove the end indicator
-            break
-    
-    if response:
-        if monitoring: print(f"Received raw response: {response.decode(errors='ignore')}")
-        byte_values = [f"0x{byte:02X}" for byte in response]  # 각 바이트를 hex로 변환
-        if monitoring: 
-            print("Byte-by-byte breakdown:")
-            print(' '.join(byte_values))  # 바이트를 공백으로 구분하여 출력
-        
-        process_response(response)
-    else:
-        print("No response received.")
+        if response:
+            if monitoring: print(f"Received raw response: {response.decode(errors='ignore')}")
+            byte_values = [f"0x{byte:02X}" for byte in response]  # 각 바이트를 hex로 변환
+            if monitoring: 
+                print("Byte-by-byte breakdown:")
+                print(' '.join(byte_values))  # 바이트를 공백으로 구분하여 출력
+           
+            process_response(response)
+        else:
+            print("No response received.")
 
 def process_response(response):
     """Process the response from Arduino."""
@@ -207,7 +209,7 @@ def process_response(response):
         return
     
     id_byte = byte_values[0]
-    
+
     # ID가 0~36 사이가 아니거나 데이터 길이가 2보다 작으면 종료
     if not (0 <= id_byte <= 36) or len(byte_values) < 2:
         print("Invalid ID or response length.")
@@ -308,21 +310,22 @@ async def ard_input():
 async def main():
     uri = "ws://localhost:8001"
     
+    # Open the serial port
+    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+    url=SERIAL_PORT, baudrate=BAUD_RATE
+    )
+
+    global arduino_reader_global, arduino_writer_global
+    arduino_reader_global = arduino_reader
+    arduino_writer_global = arduino_writer
+    
     # try:
     async with websockets.connect(uri) as websocket:
         await server_login(websocket)
         global websocket_global
         websocket_global = websocket
 
-        # Open the serial port
-        arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-        url=SERIAL_PORT, baudrate=BAUD_RATE, timeout=TIMEOUT
-        )
-        #To do arduino connection verification
-
-        global arduino_reader_global, arduino_writer_global
-        arduino_reader_global = arduino_reader
-        arduino_writer_global = arduino_writer
+        
 
         server_task = asyncio.create_task(listen_from_server())
         arduino_task = asyncio.create_task(listen_from_arduino())
