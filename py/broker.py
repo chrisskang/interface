@@ -18,7 +18,7 @@ from utils import lerp, parse_input
 monitoring = False
 
 # Serial port settings
-SERIAL_PORT = '/dev/cu.usbmodem11402'  # Change this to your actual port
+SERIAL_PORT = 'COM4'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 
@@ -332,6 +332,7 @@ async def main():
         user_input_task = asyncio.create_task(producer())
 
         await asyncio.gather(server_task, arduino_task, user_input_task)
+        
         #await asyncio.gather(server_task, user_input_task)
     # except Exception as e:
     #     print(f"An error occurred: {e}")
