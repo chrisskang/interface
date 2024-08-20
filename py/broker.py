@@ -31,19 +31,24 @@ command_queue = deque()
 command_in_progress = False
 
 
+FRAME_RATE = 30
+
+#define movement speed second for 1 degree of movement
+MOVEMENT_SPEED = 0.5 #second per degree
+
 #default 0
 defaultData = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
-#toLoopGoal
-loopGoal = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
 
-#toLoopBetween
+goalPos1 = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
+
 loopBetween ={"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}]}
-#twist
-twist = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": 30, "toggle": 1}]}
-#lift
-lift = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
+
+twistPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": 30, "toggle": 1}]}
+
+liftPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
 
 
+global arduino_response_buffer
 global noise
 
 
@@ -62,50 +67,74 @@ async def onReceived(message):
     print ("Received message from server: {0}".format(message))
     print ("")
 
-async def send_loop_between(totalTime, frameRate, goalRange):
-    # generate lerped Json from loopGoal
-    totalFrame = totalTime * frameRate
-    for i in range(int(totalFrame)):
+#-----------------Animation-----------------
+# async def loop(goalPosition, totalDuration, frameRate, random = False):
+#     # generate lerped Json from loopGoal
+#     totalFrame = totalDuration * frameRate
 
-        bufferDict = await getBufferDictRandom(goalRange, i, totalFrame)
+#     for i in range(totalFrame):
 
-        await websocket_global.send(json.dumps(bufferDict))
-        await asyncio.sleep(1/frameRate)
 
-async def getBufferDictRandom(goal, currentFrame, totalFrame):
-    bufferDict = defaultData
+#     return
+
+async def loop(goalPosition, totalDuration):
+    #TODO loop between two positions
+
+    currentPos = await getCurrentPos()
     
 
-    for i in range(len(goal["angles"])):
-        noise = PerlinNoise(octaves=8, seed=i)
+
+
+async def go_to_pos(goalPosition):
+    currentPos = await getCurrentPos()
+    #lerp between current pos to goal position with the speed of MOVEMENT_SPEED per degree
+    
+
+    for angles in goalPosition["angles"]:
+        print(angles)
+
+
+async def getCurrentPos():
+    #TODO: get current position from arduino
+
+    await send_command_to_arduino([{"id": i, "commands": [("S", "")]} for i in range(2)])
+    await asyncio.sleep(0.1 * 36)
+    
+    print(arduino_response_buffer)
+    return 
+
+# async def makeRandom(goal, currentFrame, totalFrame):
+#     bufferDict = defaultData
+
+#     for i in range(len(goal["angles"])):
+#         noise = PerlinNoise(octaves=8, seed=i)
             
-        angleMax = goal["angles"][i]["a"]
-        toggle = goal["angles"][i]["t"]
-        bufferDict["angles"][i]["a"] = noise(i+(currentFrame/totalFrame)*10) * angleMax
-        bufferDict["angles"][i]["t"] = toggle
+#         angleMax = goal["angles"][i]["a"]
+#         toggle = goal["angles"][i]["t"]
+#         bufferDict["angles"][i]["a"] = noise(i+(currentFrame/totalFrame)*10) * angleMax
+#         bufferDict["angles"][i]["t"] = toggle
 
-    return bufferDict
+# async def send_loop(totalFrame, goalAngle):
+#     # generate lerped Json from loopGoal
+#     for i in range(totalFrame):
+#         bufferDict = getBufferDict(goalAngle, i, totalFrame)
+#         print("Sending frame: ", i)
+#         print(bufferDict)
+#         print("")
+#         await websocket_global.send(json.dumps(bufferDict))
+#         await asyncio.sleep(3 / totalFrame)
+#     return bufferDict
 
-async def send_loop(totalFrame, goalAngle):
-    # generate lerped Json from loopGoal
-    for i in range(totalFrame):
-        bufferDict = getBufferDict(goalAngle, i, totalFrame)
-        print("Sending frame: ", i)
-        print(bufferDict)
-        print("")
-        await websocket_global.send(json.dumps(bufferDict))
-        await asyncio.sleep(3 / totalFrame)
+# def getBufferDict(goal, currentFrame, totalFrame):
+#     bufferDict = defaultData
+#     lerpVal = currentFrame / (totalFrame - 1)  # Adjusted lerp value to start from 0 and end at 1
 
-def getBufferDict(goal, currentFrame, totalFrame):
-    bufferDict = defaultData
-    lerpVal = currentFrame / (totalFrame - 1)  # Adjusted lerp value to start from 0 and end at 1
-
-    for i in range(len(goal["angles"])):
-        angle = lerp(defaultData["angles"][i]["a"], goal["angles"][i]["a"], lerpVal)
-        toggle = goal["angles"][i]["t"]
-        bufferDict["angles"][i]["a"] = angle
-        bufferDict["angles"][i]["t"] = toggle
-    return bufferDict
+#     for i in range(len(goal["angles"])):
+#         angle = lerp(defaultData["angles"][i]["a"], goal["angles"][i]["a"], lerpVal)
+#         toggle = goal["angles"][i]["t"]
+#         bufferDict["angles"][i]["a"] = angle
+#         bufferDict["angles"][i]["t"] = toggle
+#     return bufferDict
 
 #-----------------Arduino Communication-----------------
 
@@ -315,12 +344,53 @@ async def producer():
     while True:
         input = await aioconsole.ainput("Choose input stream (manual : m / auto : a): ")
         if input == "a" or input == "auto":
-            asyncio.create_task(send_loop_between(180, 2, loopBetween))
-            print("Sending values 0-4 in the background. You can continue entering commands.")
+            await auto_input()
+            
         elif input == "" or input == "m" or input == "manual":
             await ard_input()
         else:
             print("Invalid input")
+
+async def auto_input():
+    pos_input = await aioconsole.ainput("Select Pos - Twist(T) / Lift(L) / Random(R): ")
+    if pos_input == "T" or pos_input == "t":
+        goalPos = twistPos
+    elif pos_input == "L" or pos_input == "l":
+        goalPos = liftPos
+    elif pos_input == "R" or pos_input == "r":
+        angleToggleInput = await aioconsole.ainput("Input max angle range/ number of toggle (eg. 30/18): ")
+
+        maxangle = int(angleToggleInput.split("/")[0])
+        numToggle = int(angleToggleInput.split("/")[1])
+
+        goalPos = {"type": "angles", "angles": []}
+
+        if numToggle > 36:
+            raise ValueError("The number of toggles cannot exceed the total number of positions (36).")
+
+        angles_list = [{"a": 0, "t": 0} for _ in range(36)]
+
+        toggle_indices = random.sample(range(36), numToggle)
+        
+        for index in toggle_indices:
+            angles_list[index] = {"a": random.randint(-maxangle, maxangle), "t": 1}
+
+        goalPos = {"type": "angles", "angles": angles_list}      
+    else:
+        print("Invalid input")
+        return 
+    
+    if pos_input is not None:
+        move_input = await aioconsole.ainput("Select movement - Loop(L) / Single(S): ")
+        if move_input == "L" or move_input == "l":
+            totalTime = await aioconsole.ainput("Enter total time to loop(s) : ")
+            await loop(goalPos, totalTime)
+        elif move_input == "S" or move_input == "s":
+            await go_to_pos(goalPos)
+            #asyncio.create_task(go_to_pos(goalPos))
+        else:
+            print("Invalid input")
+            return
 
 async def ard_input():
     user_input = await aioconsole.ainput("Enter command (e.g., '1:S', '1:A324', '1:A324,C32', '1:A324 2:C32'): ")
@@ -340,13 +410,13 @@ async def main():
     uri = "ws://localhost:8001"
     
     # Open the serial port
-    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-    url=SERIAL_PORT, baudrate=BAUD_RATE
-    )
+    # arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+    # url=SERIAL_PORT, baudrate=BAUD_RATE
+    # )
 
-    global arduino_reader_global, arduino_writer_global
-    arduino_reader_global = arduino_reader
-    arduino_writer_global = arduino_writer
+    # global arduino_reader_global, arduino_writer_global
+    # arduino_reader_global = arduino_reader
+    # arduino_writer_global = arduino_writer
     
     # try:
     async with websockets.connect(uri) as websocket:
