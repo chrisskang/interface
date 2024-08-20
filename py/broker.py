@@ -18,7 +18,7 @@ from utils import lerp, parse_input
 monitoring = False
 
 # Serial port settings
-SERIAL_PORT = '/dev/cu.usbmodem11402'  # Change this to your actual port
+SERIAL_PORT = 'COM4'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 
@@ -163,7 +163,7 @@ async def process_command_queue():
             elif header == 'L':
                 # 데이터가 3개의 int8_t 형식일 때
                 try:
-                    values = list(map(int, value.split(',')))
+                    values = list(map(int, value.split('/')))
                     if len(values) != 3:
                         print(f"Error: Header 'L' requires exactly 3 values.")
                         return
@@ -182,9 +182,7 @@ async def process_command_queue():
                 print(f"Error: Unsupported header '{header}'.")
                 return
            
-            
-            # ... (keep your existing message construction logic)
-        
+    
         message.append(ord('\n'))
         
         # Send the command
@@ -198,30 +196,46 @@ async def process_command_queue():
 
 async def wait_for_response():
     response = bytearray()
+    max_retry = 5
     
-    while True:
-        chunk = await arduino_reader_global.read(1)
-        
-        if not chunk:
-            break
-        
-        response.extend(chunk)
-        
-        if len(response) >= 3 and response[-3:] == b'\x99\x88\xFF':
-            response = response[:-3]
-            break
-    
-    if response:
-        if monitoring: print(f"Received raw response: {response.decode(errors='ignore')}")
-        byte_values = [f"0x{byte:02X}" for byte in response]  # 각 바이트를 hex로 변환
-        if monitoring: 
+    def print_debug_info(response):
+        """ Helper function to print debugging information. """
+        if monitoring:
+            print(f"Received raw response: {response.decode(errors='ignore')}")
+            byte_values = [f"0x{byte:02X}" for byte in response]
             print("Byte-by-byte breakdown:")
-            print(' '.join(byte_values))  # 바이트를 공백으로 구분하여 출력
+            print(' '.join(byte_values))
 
-        process_response(response)
-    else:
-        print("No response received.")
+    for attempt in range(max_retry):
+        try:
+            while True:
+                chunk = await asyncio.wait_for(arduino_reader_global.read(1), timeout=TIMEOUT)
 
+                if not chunk:
+                    break
+                
+                response.extend(chunk)
+                
+                if len(response) >= 3 and response[-3:] == b'\x99\x88\xFF':
+                    response = response[:-3]
+                    break
+            
+            if response:
+                print_debug_info(response)
+                process_response(response)
+                return
+            print(f"Attempt {attempt+1}/{max_retry}: No response received.")
+
+        except asyncio.TimeoutError:
+            print(f"Attempt {attempt+1}/{max_retry}: Timeout occurred. Retrying...")
+            continue  # Retry only on timeout
+
+        break  # Break the loop if no timeout occurred, regardless of the content
+
+    print("Max retries reached. Exiting without a successful response.")
+
+
+    
 
 async def listen_from_arduino():
     while True:
@@ -315,24 +329,15 @@ async def ard_input():
     user_input = await aioconsole.ainput("Enter command (e.g., '1:S', '1:A324', '1:A324,C32', '1:A324 2:C32'): ")
     if user_input:
         if user_input == '?':
-            print("Read Commands:")
-            print("  S (sensor)")
-            print("  P (pwm)")
-            print("  R (eeprom)")
-
-            print("Write Commands:")
-            print("  A ( int16: origin Angle) -32768 ~ 32767 : angle*100")
-            print("  U ( int16: origin Pulse)")
-            print("  C (uint8 : currentThreshold) 0 ~ 255 : A*10")
-            print("  T (uint8 : MaxNetwork) 0 ~ 255 : max 25.5sec")
-            print("  M (uint8 : mosfet) 0 | 1")
-            print("  V (uint16: pulse) 500 ~ 2500")
-            print("  L (uint8 : LED) 0 ~ 255 : L0,10,100")
-
-        parsed_input = parse_input(user_input)
-
-        await send_command_to_arduino(parsed_input)
-
+            print("Read : S (sensor) P (pwm) R (eeprom)")
+            print("Write : A (origin Angle) U (origin Pulse) C (currentThreshold) T (MaxNetwork) M (mosfet) V (pulse) L (LED)")
+                    
+        else:       
+            parsed_input = parse_input(user_input)  
+            if parsed_input is not None:
+                await send_command_to_arduino(parsed_input)
+            else:
+                return
 
 async def main():
     uri = "ws://localhost:8001"

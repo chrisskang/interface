@@ -2,9 +2,9 @@
 //    ID init
 // ------------------------------
 #define SetID  1
-const int unitID[2] = { SetID * 2 - 1, SetID * 2 };
-boolean monitoring = true;
-bool debug = true;
+uint8_t unitID[2] = { SetID * 2 - 1, SetID * 2 };
+boolean monitoring = false;
+bool debug = false;
 bool AS = false;
 // ------------------------------
 //    Pinmap 
@@ -192,7 +192,7 @@ void loop() {
 
     if (id == unitID[0] || id == unitID[1] || id == 0) {
       if (id == unitID[1]) ch = 1;
-      RSwrite(8, id);
+      RSwrite(8, unitID[ch]);
       
       if (monitoring) {
         Serial.print(">Received Buffer  ID: ");
@@ -334,14 +334,10 @@ void loop() {
           case 'H': {
             break;
           }
-          case 'X': {
-            for (int j = 0; j < 2; j++) {
-              mosfet[j] = 0;
-              servo[j] = 0;
-              for (int k = 0; k < 3; k++) {
-                led[j][k] = 0;
-              }
-            }
+          case 'X': {   // buffer flush
+            flushSerialBuffers();
+            RSwrite(header);
+            
             break;
           }
           default: {
@@ -433,4 +429,13 @@ void RSwrite(char value) {
   if (bufferIndex < BUFFER_SIZE) {
     buffer[bufferIndex++] = (uint8_t)value;
   }
+}
+
+void flushSerialBuffers() {
+  // 버퍼를 플러시합니다.
+  while (RS485.available()) {
+    RS485.read();
+  }
+  Serial.flush();  // 아두이노 자체의 시리얼 버퍼도 플러시
+  Serial.println("Buffers flushed.");
 }

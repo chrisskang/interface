@@ -2,7 +2,7 @@ import serial
 import time
 import struct
 
-monitoring = False
+monitoring = True
 
 # Serial port settings
 SERIAL_PORT = 'COM4'  # Change this to your actual port
@@ -28,6 +28,10 @@ def send_command(id, commands):
     if len(commands) == 0:
         print("Error: No commands provided.")
         return
+
+    # Check if 'X' header is in commands and flush buffers if it is
+    if any(header == 'X' for header, _ in commands):
+        flush_buffers()
 
     message = bytearray()
     message.append(id)  # ID를 uint8_t 형식으로 추가
@@ -119,6 +123,12 @@ def read_response():
         print("No response received.")
 
 
+def flush_buffers():
+    """Flush both input and output buffers."""
+    ser.reset_input_buffer()
+    ser.reset_output_buffer()
+    print("Buffers flushed.")
+
 def process_response(response):
     """Process the response from Arduino."""
     # response를 바이트 단위로 변환
@@ -142,6 +152,7 @@ def process_response(response):
        
         if header == 'S':
             if index + 3 <= len(byte_values):
+                id_byte = byte_values[index -2]
                 val1 = byte_values[index]
                 val2 = byte_values[index + 1]
                 val3 = int.from_bytes(byte_values[index + 2:index + 4], byteorder='little')
@@ -154,6 +165,7 @@ def process_response(response):
         
         elif header == 'P':
             if index + 5 <= len(byte_values):
+                id_byte = byte_values[index -2]
                 val1 = byte_values[index]
                 val2 = int.from_bytes(byte_values[index + 1:index + 3], byteorder='little')
                 val3 = byte_values[index + 3]
@@ -166,6 +178,7 @@ def process_response(response):
         
         elif header == 'R':
             if index + 6 <= len(byte_values):  # 총 6바이트를 읽어야 함
+                id_byte = byte_values[index -2]
                 val1 = int.from_bytes(byte_values[index:index + 2], byteorder='little')  # int16
                 val2 = int.from_bytes(byte_values[index + 2:index + 4], byteorder='little')  # uint16
                 val3 = byte_values[index + 4]  # uint8
@@ -175,16 +188,17 @@ def process_response(response):
             else:
                 print("Incomplete data for header 'R'")
         
-        elif header in 'ACT':
+        elif header in 'AUCT':
             if index + 1 <= len(byte_values):
+                id_byte = byte_values[index -2]
                 val1 = byte_values[index]
-                print(f"Header: {header} | Value: {val1}")
+                print(f"{id_byte} : Header: {header} | Value: {val1}")
                 index += 1
             else:
                 print(f"Incomplete data for header '{header}'")
         
         else:
-            print(f"Unknown header: {header}")
+            print(f"{id_byte} : Header: {header}")
 
 def send_command_and_measure_time(id, commands):
     """ Send a command and measure the time taken to receive the response.

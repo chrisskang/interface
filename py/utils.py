@@ -5,11 +5,16 @@ def lerp(a, b, t):
     return a * (1.0 - t) + (b * t)
 
 def parse_input(user_input):
-
+    try:
+        user_input.split()[0].split(":")[1]
+    except:
+        print("Invalid user input")
+        return
     cmdList = []
 
     for index, parts in enumerate(user_input.split()):
         parts = parts.split(':')
+
         id = parts[0]
         cmds = parts[1]
         
@@ -21,5 +26,5 @@ def parse_input(user_input):
             header = part[0]
             value = part[1:].strip() if len(part) > 1 else ''
             cmdList[index]['commands'].append((header, value))
-            
+        
     return cmdList
