@@ -59,7 +59,7 @@ async def listen_from_server():
         await onReceived(message)
 
 async def onReceived(message):
-    print ("Received message: {0}".format(message))
+    print ("Received message from server: {0}".format(message))
     print ("")
 
 async def send_loop_between(totalTime, frameRate, goalRange):
@@ -233,9 +233,6 @@ async def wait_for_response():
         break  # Break the loop if no timeout occurred, regardless of the content
 
     print("Max retries reached. Exiting without a successful response.")
-
-
-    
 
 async def listen_from_arduino():
     while True:

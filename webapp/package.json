@@ -16,10 +16,12 @@
     "three": "^0.166.1",
     "tweakpane": "^4.0.4",
     "use-debounce": "^10.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "webpack": "^5.93.0",
+    "webpack-dev-server": "^5.0.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "GENERATE_SOURCEMAP=false && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
