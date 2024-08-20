@@ -98,6 +98,10 @@ async def getCurrentPos():
     #TODO: get current position from arduino
 
     await send_command_to_arduino([{"id": i, "commands": [("S", "")]} for i in range(2)])
+
+    for i in range(36):
+        command_queue.append({"id": i, "commands": [("S", "P")]})
+
     await asyncio.sleep(0.1 * 36)
     
     print(arduino_response_buffer)
@@ -149,6 +153,7 @@ async def send_command_to_arduino(inputList):
     
     
     # if monitoring: print([hex(b) for b in message])
+
 async def process_command_queue():
     
     global command_in_progress
@@ -284,7 +289,10 @@ def process_response(response):
         print("Invalid ID or response length.")
         return
     
+    arduino_response_buffer = {id_byte: {}}
+
     index = 1
+
     while index < len(byte_values):
         header = chr(byte_values[index])
         index += 1
@@ -298,6 +306,8 @@ def process_response(response):
                     val3 = val3 - 65536  # 음수 변환
                 print(f"{id_byte} : Sensor | {val1/10} v, {val2/10} a, {val3/100} °")
                 index += 4
+                arduino_response_buffer[id_byte] = {"voltage": val1/10, "current": val2/10, "angle": val3/100}
+            
             else:
                 print("Incomplete data for header 'S'")
         
@@ -310,6 +320,7 @@ def process_response(response):
                 val5 = byte_values[index + 5]
                 print(f"{id_byte} : PWM | mosfet {val1}, servo {val2}, LED {val3}, {val4}, {val5}")
                 index += 6
+                arduino_response_buffer[id_byte] = {"mosfet": val1, "servo": val2, "LED": [val3, val4, val5]}
             else:
                 print("Incomplete data for header 'P'")
         
@@ -321,6 +332,7 @@ def process_response(response):
                 val4 = byte_values[index + 5]  # uint8
                 print(f"{id_byte} : EEPROM | origin Angle {val1/100}, origin Pulse {val2}, current Threshold {val3/10}, Max Network Loss {val4/10}")
                 index += 6  # 6바이트를 읽었으므로 인덱스를 6 증가시킴
+                arduino_response_buffer[id_byte] = {"originAngle": val1/100, "originPulse": val2, "currentThreshold": val3/10, "maxNetworkLoss": val4/10}
             else:
                 print("Incomplete data for header 'R'")
         
@@ -334,6 +346,7 @@ def process_response(response):
         
         else:
             print(f"Unknown header: {header}")
+    print(arduino_response_buffer)
     if command_queue:
         asyncio.create_task(process_command_queue())
 
@@ -410,13 +423,13 @@ async def main():
     uri = "ws://localhost:8001"
     
     # Open the serial port
-    # arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-    # url=SERIAL_PORT, baudrate=BAUD_RATE
-    # )
+    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+    url=SERIAL_PORT, baudrate=BAUD_RATE
+    )
 
-    # global arduino_reader_global, arduino_writer_global
-    # arduino_reader_global = arduino_reader
-    # arduino_writer_global = arduino_writer
+    global arduino_reader_global, arduino_writer_global
+    arduino_reader_global = arduino_reader
+    arduino_writer_global = arduino_writer
     
     # try:
     async with websockets.connect(uri) as websocket:
@@ -432,7 +445,6 @@ async def main():
 
         await asyncio.gather(server_task, user_input_task)
         
-        #await asyncio.gather(server_task, user_input_task)
     # except Exception as e:
     #     print(f"An error occurred: {e}")
     
