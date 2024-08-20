@@ -13,7 +13,7 @@ import logging
 
 import serial_asyncio
 
-from utils import lerp, parse_input
+from utils import lerp, parse_input, translate_command_to_bytearray
 
 monitoring = False
 
@@ -48,7 +48,7 @@ twistPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 6
 liftPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
 
 
-global arduino_response_buffer
+global arduino_response_recorder
 global noise
 
 
@@ -87,25 +87,24 @@ async def loop(goalPosition, totalDuration):
 
 async def go_to_pos(goalPosition):
     currentPos = await getCurrentPos()
+    print ("Current Position: {}".format(currentPos))
     #lerp between current pos to goal position with the speed of MOVEMENT_SPEED per degree
     
-
-    for angles in goalPosition["angles"]:
-        print(angles)
+    currentPos
+    # for angles in goalPosition["angles"]:
+    #     print(angles)
 
 
 async def getCurrentPos():
     #TODO: get current position from arduino
-
-    await send_command_to_arduino([{"id": i, "commands": [("S", "")]} for i in range(2)])
-
+    
     for i in range(36):
         command_queue.append({"id": i, "commands": [("S", "P")]})
-
-    await asyncio.sleep(0.1 * 36)
+    recordedPos = []
+    recordedPos.append(arduino_response_recorder) 
+   
     
-    print(arduino_response_buffer)
-    return 
+    return recordedPos
 
 # async def makeRandom(goal, currentFrame, totalFrame):
 #     bufferDict = defaultData
@@ -143,6 +142,8 @@ async def getCurrentPos():
 #-----------------Arduino Communication-----------------
 
 async def send_command_to_arduino(inputList):
+    #always input value should like this 
+    #inputList = [{"id": 1, "commands": [("S", ""), ("P", "")]}, {"id": 2, "commands": [("P", ""), ("R", "")]}]
 
     global command_queue
     for cmdList in inputList:
@@ -151,9 +152,12 @@ async def send_command_to_arduino(inputList):
     if not command_in_progress:
         await process_command_queue()
     
-    
-    # if monitoring: print([hex(b) for b in message])
 
+async def listen_from_arduino():
+    while True:
+        response = await wait_for_response()
+        onReceivedFromArduino(response)
+       
 async def process_command_queue():
     
     global command_in_progress
@@ -161,71 +165,21 @@ async def process_command_queue():
     while command_queue:
         command_in_progress = True
         cmdList = command_queue.popleft()
-        
-        message = bytearray()
-        message.append(int(cmdList['id']))
-        
-        for cmd in cmdList['commands']:
-            header = cmd[0]
-            value = cmd[1]
+ 
+        try:
+            message = translate_command_to_bytearray(cmdList)
+            if message is not None: 
+                arduino_writer_global.write(message)
+                print(f"Sent command: {message.hex()}")
+            else:        
+                raise TypeError 
+        except TypeError:
+            print('translation cmd -> byteArr error')
 
-            if len(header) != 1 or not header.isalpha():
-                print(f"Error: Header '{header}' must be a single alphabetic character.")
-                return
-            
-            message.append(ord(header))  # Header를 ASCII 값으로 추가
-
-            if header in ['A', 'V','U']:
-                # 데이터가 int16_t 형식일 때
-                try:
-                    int16_value = int(value)
-                    message.extend(int16_value.to_bytes(2, byteorder='little', signed=True))
-                except ValueError:
-                    print(f"Error: Data '{value}' should be an integer for '{header}' header.")
-                    return
-            elif header in ['C', 'T', 'M']:
-                # 데이터가 int8_t 형식일 때
-                try:
-                    int8_value = int(value)
-                    if not (0 <= int8_value <= 255):
-                        print(f"Error: Value '{int8_value}' for header '{header}' out of range (0-255).")
-                        return
-                    message.append(int8_value & 0xFF)
-                except ValueError:
-                    print(f"Error: Data '{value}' should be an integer for '{header}' header.")
-                    return
-            elif header == 'L':
-                # 데이터가 3개의 int8_t 형식일 때
-                try:
-                    values = list(map(int, value.split('/')))
-                    if len(values) != 3:
-                        print(f"Error: Header 'L' requires exactly 3 values.")
-                        return
-                    for val in values:
-                        if not (0 <= val <= 255):
-                            print(f"Error: Value '{val}' for 'L' header out of range (0-255).")
-                            return
-                        message.append(val & 0xFF)
-                except ValueError:
-                    print(f"Error: Data '{value}' should be a comma-separated list of integers for 'L' header.")
-                    return
-            elif header in ['S', 'P', 'R','H','X']:
-                # 헤더가 'S', 'P', 'R'인 경우 값 없음
-                pass
-            else:
-                print(f"Error: Unsupported header '{header}'.")
-                return
-           
-    
-        message.append(ord('\n'))
-        
-        # Send the command
-        arduino_writer_global.write(message)
-        print(f"Sent command: {message.hex()}")
-        
         # Wait for response
-        await wait_for_response()
-    
+        # response = await wait_for_response()
+        # process_response(response)
+        
     command_in_progress = False
 
 async def wait_for_response():
@@ -255,9 +209,9 @@ async def wait_for_response():
                     break
             
             if response:
-                print_debug_info(response)
-                process_response(response)
-                return
+                #print_debug_info(response)
+                
+                return response
             print(f"Attempt {attempt+1}/{max_retry}: No response received.")
 
         except asyncio.TimeoutError:
@@ -268,14 +222,8 @@ async def wait_for_response():
 
     print("Max retries reached. Exiting without a successful response.")
 
-async def listen_from_arduino():
-    while True:
-        await wait_for_response()
-
-def process_response(response):
-    """Process the response from Arduino."""
-
-    # response를 바이트 단위로 변환
+def translate_response(response):
+    
     byte_values = [b for b in response]
     
     if len(byte_values) < 2:
@@ -284,12 +232,11 @@ def process_response(response):
     
     id_byte = byte_values[0]
 
-    # ID가 0~36 사이가 아니거나 데이터 길이가 2보다 작으면 종료
     if not (0 <= id_byte <= 36) or len(byte_values) < 2:
         print("Invalid ID or response length.")
         return
     
-    arduino_response_buffer = {id_byte: {}}
+    bufferData = {id_byte: {}}
 
     index = 1
 
@@ -306,7 +253,7 @@ def process_response(response):
                     val3 = val3 - 65536  # 음수 변환
                 print(f"{id_byte} : Sensor | {val1/10} v, {val2/10} a, {val3/100} °")
                 index += 4
-                arduino_response_buffer[id_byte] = {"voltage": val1/10, "current": val2/10, "angle": val3/100}
+                bufferData[id_byte] = {"voltage": val1/10, "current": val2/10, "angle": val3/100}
             
             else:
                 print("Incomplete data for header 'S'")
@@ -320,7 +267,7 @@ def process_response(response):
                 val5 = byte_values[index + 5]
                 print(f"{id_byte} : PWM | mosfet {val1}, servo {val2}, LED {val3}, {val4}, {val5}")
                 index += 6
-                arduino_response_buffer[id_byte] = {"mosfet": val1, "servo": val2, "LED": [val3, val4, val5]}
+                bufferData[id_byte] = {"mosfet": val1, "servo": val2, "LED": [val3, val4, val5]}
             else:
                 print("Incomplete data for header 'P'")
         
@@ -332,7 +279,7 @@ def process_response(response):
                 val4 = byte_values[index + 5]  # uint8
                 print(f"{id_byte} : EEPROM | origin Angle {val1/100}, origin Pulse {val2}, current Threshold {val3/10}, Max Network Loss {val4/10}")
                 index += 6  # 6바이트를 읽었으므로 인덱스를 6 증가시킴
-                arduino_response_buffer[id_byte] = {"originAngle": val1/100, "originPulse": val2, "currentThreshold": val3/10, "maxNetworkLoss": val4/10}
+                bufferData[id_byte] = {"originAngle": val1/100, "originPulse": val2, "currentThreshold": val3/10, "maxNetworkLoss": val4/10}
             else:
                 print("Incomplete data for header 'R'")
         
@@ -341,12 +288,28 @@ def process_response(response):
                 val1 = byte_values[index]
                 print(f"Header: {header} | Value: {val1}")
                 index += 1
+                bufferData[id_byte] = {header: val1}
             else:
                 print(f"Incomplete data for header '{header}'")
         
         else:
             print(f"Unknown header: {header}")
-    print(arduino_response_buffer)
+    return bufferData
+
+
+def onReceivedFromArduino(response):
+    """Process the response from Arduino."""
+
+    try:
+        data = translate_response(response)
+        if data is not None: 
+
+            arduino_response_recorder.append(data)
+        else:        
+            raise TypeError 
+    except TypeError:
+        print('translation cmd -> byteArr error')
+
     if command_queue:
         asyncio.create_task(process_command_queue())
 
@@ -360,7 +323,7 @@ async def producer():
             await auto_input()
             
         elif input == "" or input == "m" or input == "manual":
-            await ard_input()
+            await manual_input()
         else:
             print("Invalid input")
 
@@ -391,8 +354,7 @@ async def auto_input():
         goalPos = {"type": "angles", "angles": angles_list}      
     else:
         print("Invalid input")
-        return 
-    
+ 
     if pos_input is not None:
         move_input = await aioconsole.ainput("Select movement - Loop(L) / Single(S): ")
         if move_input == "L" or move_input == "l":
@@ -403,9 +365,8 @@ async def auto_input():
             #asyncio.create_task(go_to_pos(goalPos))
         else:
             print("Invalid input")
-            return
 
-async def ard_input():
+async def manual_input():
     user_input = await aioconsole.ainput("Enter command (e.g., '1:S', '1:A324', '1:A324,C32', '1:A324 2:C32'): ")
     if user_input:
         if user_input == '?':
@@ -413,11 +374,16 @@ async def ard_input():
             print("Write : A (origin Angle) U (origin Pulse) C (currentThreshold) T (MaxNetwork) M (mosfet) V (pulse) L (LED)")
                     
         else:       
-            parsed_input = parse_input(user_input)  
-            if parsed_input is not None:
-                await send_command_to_arduino(parsed_input)
-            else:
-                return
+            parsed_input = parse_input(user_input)
+
+            try:
+                if parsed_input is not None: 
+                    await send_command_to_arduino(parsed_input)
+                else:        
+                    raise TypeError 
+            except TypeError:
+                print('parsing error')
+
 
 async def main():
     uri = "ws://localhost:8001"
@@ -443,7 +409,9 @@ async def main():
 
         user_input_task = asyncio.create_task(producer())
 
-        await asyncio.gather(server_task, user_input_task)
+        arduino_task = asyncio.create_task(listen_from_arduino())
+
+        await asyncio.gather(server_task, arduino_task, user_input_task)
         
     # except Exception as e:
     #     print(f"An error occurred: {e}")
