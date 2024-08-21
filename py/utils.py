@@ -37,6 +37,7 @@ def translate_command_to_bytearray(cmdList):
     for cmd in cmdList['commands']:
         header = cmd[0]
         value = cmd[1]
+        print(header)
 
         if len(header) != 1 or not header.isalpha():
             print(f"Error: Header '{header}' must be a single alphabetic character.")
@@ -87,3 +88,4 @@ def translate_command_to_bytearray(cmdList):
         
     message.append(ord('\n'))
     return message
+

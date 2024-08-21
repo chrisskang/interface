@@ -1,11 +1,11 @@
 // ------------------------------
 //    ID init
 // ------------------------------
-#define SetID  16
+#define SetID  1
 uint8_t unitID[2] = { SetID * 2 - 1, SetID * 2 };
 boolean monitoring = true;
-bool debug = false;
-bool AS = true;
+bool debug = true;
+bool AS = false;
 // ------------------------------
 //    Pinmap 
 // ------------------------------
@@ -119,8 +119,8 @@ void setup() {
     for(int i=0;i<2;i++){
       Serial.print("\tUnitID ");
       Serial.print(unitID[i]);
-      ina226_init(i);
-      as5600_init(i);  
+      //ina226_init(i);
+      //as5600_init(i);  
     }
   Serial.println("- I2C Communication Done");   
 
@@ -136,9 +136,9 @@ void setup() {
 
   if(monitoring){
     Serial.println("*** Test Sensor Read ***");
-      readINA(0);
+      //readINA(0);
       readAS(0);
-      readINA(1);
+      //readINA(1);
       readAS(1);
     for(int i=0;i<2;i++){
       Serial.print("\t[Unit ");
@@ -360,8 +360,8 @@ void loop() {
     readAS(0);
     readAS(1);
   }
-  readINA(0);
-  readINA(1);
+  //readINA(0);
+  //readINA(1);
   if(debug)  Serial.println("");
 }
 

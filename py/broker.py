@@ -106,6 +106,10 @@ async def getCurrentPos():
     
     return recordedPos
 
+async def calibrate_angle():
+    send_command_to_arduino()
+
+
 # async def makeRandom(goal, currentFrame, totalFrame):
 #     bufferDict = defaultData
 
@@ -156,7 +160,8 @@ async def send_command_to_arduino(inputList):
 async def listen_from_arduino():
     while True:
         response = await wait_for_response()
-        onReceivedFromArduino(response)
+        #print (response)
+        #onReceivedFromArduino(response)
        
 async def process_command_queue():
     
@@ -177,8 +182,8 @@ async def process_command_queue():
             print('translation cmd -> byteArr error')
 
         # Wait for response
-        # response = await wait_for_response()
-        # process_response(response)
+        response = await wait_for_response()
+        translate_response(response)
         
     command_in_progress = False
 
@@ -198,6 +203,7 @@ async def wait_for_response():
         try:
             while True:
                 chunk = await asyncio.wait_for(arduino_reader_global.read(1), timeout=TIMEOUT)
+                
 
                 if not chunk:
                     break
@@ -318,12 +324,15 @@ def onReceivedFromArduino(response):
 #-----------------Input Producer-----------------
 async def producer():
     while True:
-        input = await aioconsole.ainput("Choose input stream (manual : m / auto : a): ")
+        input = await aioconsole.ainput("Choose input stream (manual : m / auto : a / calibrate : c): ")
         if input == "a" or input == "auto":
             await auto_input()
             
-        elif input == "" or input == "m" or input == "manual":
+        elif input == "m" or input == "manual":
             await manual_input()
+        elif input == "c":
+            await calibrate_angle()
+
         else:
             print("Invalid input")
 
@@ -375,6 +384,14 @@ async def manual_input():
                     
         else:       
             parsed_input = parse_input(user_input)
+            
+            # for cmdList in parsed_input:
+            #     for cmds in cmdList['commands']:
+            #         if "X" in cmds:
+            #             arduino_reader_global.reset_input_buffer()
+            #             arduino_reader_global.reset_output_buffer()
+            #             arduino_writer_global.reset_input_buffer()
+            #             arduino_writer_global.reset_output_buffer()
 
             try:
                 if parsed_input is not None: 
@@ -383,6 +400,7 @@ async def manual_input():
                     raise TypeError 
             except TypeError:
                 print('parsing error')
+                pass
 
 
 async def main():
@@ -409,9 +427,9 @@ async def main():
 
         user_input_task = asyncio.create_task(producer())
 
-        arduino_task = asyncio.create_task(listen_from_arduino())
+        #arduino_task = asyncio.create_task(listen_from_arduino())
 
-        await asyncio.gather(server_task, arduino_task, user_input_task)
+        await asyncio.gather(server_task, user_input_task)
         
     # except Exception as e:
     #     print(f"An error occurred: {e}")
