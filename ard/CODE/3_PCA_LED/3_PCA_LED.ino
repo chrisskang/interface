@@ -44,9 +44,9 @@ void setup() {
 
 void loop() {
   Serial.println("hihg");
-  pwm.setPWM(7,4096,0);
+  pwm.setPWM(0,4096,0);
   delay(1000);
   Serial.println("low");
-  pwm.setPWM(7,0,4096);
+  pwm.setPWM(0,0,4096);
   delay(1000);
 }

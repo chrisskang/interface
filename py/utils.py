@@ -37,8 +37,7 @@ def translate_command_to_bytearray(cmdList):
     for cmd in cmdList['commands']:
         header = cmd[0]
         value = cmd[1]
-        print(header)
-
+       
         if len(header) != 1 or not header.isalpha():
             print(f"Error: Header '{header}' must be a single alphabetic character.")
             return
@@ -89,3 +88,8 @@ def translate_command_to_bytearray(cmdList):
     message.append(ord('\n'))
     return message
 
+
+def angle_to_pulse(a):
+    #angle per 50 == 4.1
+    PulsePerDegree = 12.2
+    return PulsePerDegree*a

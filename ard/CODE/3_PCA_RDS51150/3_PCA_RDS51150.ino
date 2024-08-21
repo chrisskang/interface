@@ -45,8 +45,8 @@ void setServoPulse(uint8_t n, int pulse) {
   int pulseval = pulse / pulselength;
   Serial.print("Pulse value: ");
   Serial.println(pulseval);
-  pwm.setPWM(1, 0, pulseval);
-  pwm.setPWM(14, 0, pulseval);
+  pwm.setPWM(6, 0, pulseval);
+  pwm.setPWM(7, 0, pulseval);
 }
 
 void loop() {

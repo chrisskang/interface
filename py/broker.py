@@ -1,4 +1,5 @@
 import asyncio
+import math
 import random
 import aioconsole
 import websockets
@@ -13,7 +14,7 @@ import logging
 
 import serial_asyncio
 
-from utils import lerp, parse_input, translate_command_to_bytearray
+from utils import lerp, parse_input, translate_command_to_bytearray, angle_to_pulse
 
 monitoring = False
 
@@ -25,7 +26,6 @@ TIMEOUT = 1  # Adjusted timeout
 start_time = 0
 end_time = 0
 
-response_callback = None
 
 command_queue = deque()
 command_in_progress = False
@@ -35,6 +35,19 @@ FRAME_RATE = 30
 
 #define movement speed second for 1 degree of movement
 MOVEMENT_SPEED = 0.5 #second per degree
+MINPULSE = 10
+
+#TODO SOLVE THIS EQUATION
+# PulsePerDegree = 12.2 #angle per 50 == 4.1
+
+# time_per_pulse = MOVEMENT_SPEED / PulsePerDegree
+
+# SLEEP_TIME = MINPULSE * time_per_pulse
+
+#print(f"SLEEP_TIME: {SLEEP_TIME} seconds")
+
+
+
 
 #default 0
 defaultData = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}]}
@@ -48,8 +61,7 @@ twistPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 6
 liftPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
 
 
-global arduino_response_recorder
-global noise
+arduino_response_recorder = None
 
 
 #-----------------Server Communication-----------------
@@ -74,7 +86,6 @@ async def onReceived(message):
 
 #     for i in range(totalFrame):
 
-
 #     return
 
 async def loop(goalPosition, totalDuration):
@@ -86,28 +97,109 @@ async def loop(goalPosition, totalDuration):
 
 
 async def go_to_pos(goalPosition):
-    currentPos = await getCurrentPos()
-    print ("Current Position: {}".format(currentPos))
-    #lerp between current pos to goal position with the speed of MOVEMENT_SPEED per degree
-    
-    currentPos
-    # for angles in goalPosition["angles"]:
-    #     print(angles)
+    #TODO PARSE GOAL POSITION
+    #driveTo parsed value
+
+    return
 
 
-async def getCurrentPos():
-    #TODO: get current position from arduino
-    
-    for i in range(36):
-        command_queue.append({"id": i, "commands": [("S", "P")]})
-    recordedPos = []
-    recordedPos.append(arduino_response_recorder) 
-   
-    
-    return recordedPos
+
 
 async def calibrate_angle():
-    send_command_to_arduino()
+
+    id = 4
+    #turn mosfet off
+    await send_command_to_arduino([{"id": id, "commands": [("M", 0)]}])
+    
+    #check mosfet turned off
+    if await getArduinoData(id, "mosfet"):
+        print("mosfet is not turned off")
+        return
+    else:
+        print("mosfet is successfully turned off")
+    
+    if await turnOnMosfet(id):
+        await asyncio.sleep(1)
+        goal = 0
+        print("mosfet is on and driving to ", goal)
+
+        await driveTo(id, goal)
+        #TODO record position
+
+    return
+
+async def turnOnMosfet(id):
+
+    current_angle = await getArduinoData(id, "angle")
+    current_pulse = angle_to_pulse(current_angle)
+
+    #set pulse to match current position
+    await send_command_to_arduino([{"id": id, "commands": [("V", current_pulse)]}])
+
+    #turnon mosfet
+    await send_command_to_arduino([{"id": id, "commands": [("M", 1)]}])
+    #wait for 0.5 second
+    await asyncio.sleep(0.5)
+
+    #check if mosfet is still on
+    return await getArduinoData(id, "mosfet")
+   
+async def driveTo(id, goalPulse):
+    #send pulse command incrementally
+    currentPulse = await getArduinoData(id, "pulse")
+    originPulse = await getArduinoData(id, "originPulse")
+
+    currentPulseNormalized = currentPulse - originPulse #make it normalized to origin
+    goal_range = goalPulse - currentPulseNormalized
+
+    stepCount = goal_range/MINPULSE
+    
+    #check if mosfet is on
+    if await getArduinoData(id, "mosfet"):
+        
+        for i in range(math.ceil(abs(stepCount))):
+
+            bufferStep = i * MINPULSE
+            if goal_range < 0:
+                bufferStep = -bufferStep
+            
+            await send_command_to_arduino([{"id": id, "commands": [("V", currentPulseNormalized + bufferStep)]}])
+            print("Driving to: ", currentPulseNormalized + bufferStep)
+            await asyncio.sleep(0.1)
+            if i == math.ceil(abs(stepCount))-1:
+
+                await send_command_to_arduino([{"id": id, "commands": [("V", goalPulse)]}])
+                print("Reached goal pulse at: ", goalPulse)
+
+                print("mosfet is :", await getArduinoData(id, "mosfet"))
+                print("current pulse is :", await getArduinoData(id, "pulse"))
+                print("current angle is :", await getArduinoData(id, "angle"))
+
+    elif not await getArduinoData(id, "mosfet"):
+        if await turnOnMosfet():
+            driveTo(id, goalPulse)
+
+       
+async def getArduinoData(id,requestType):
+    global arduino_response_recorder
+    S_data = ["voltage", "current", "angle"]
+    P_data = ["mosfet", "pulse", "LED"]
+    R_data = ["originAngle", "originPulse", "currentThreshold", "maxNetworkLoss"]
+        
+    if requestType in S_data:
+        await send_command_to_arduino([{"id": id, "commands": [("S", "")]}])
+    elif requestType in P_data:
+        await send_command_to_arduino([{"id": id, "commands": [("P", "")]}])
+    elif requestType in R_data:
+        await send_command_to_arduino([{"id": id, "commands": [("R", "")]}])
+
+    try:
+        id in arduino_response_recorder
+    except:
+        print("id do not match")
+    
+    else:
+        return arduino_response_recorder[id][requestType]
 
 
 # async def makeRandom(goal, currentFrame, totalFrame):
@@ -166,6 +258,7 @@ async def listen_from_arduino():
 async def process_command_queue():
     
     global command_in_progress
+    global arduino_response_recorder
     
     while command_queue:
         command_in_progress = True
@@ -175,7 +268,8 @@ async def process_command_queue():
             message = translate_command_to_bytearray(cmdList)
             if message is not None: 
                 arduino_writer_global.write(message)
-                print(f"Sent command: {message.hex()}")
+                if monitoring:
+                    print(f"Sent command: {message.hex()}")
             else:        
                 raise TypeError 
         except TypeError:
@@ -183,7 +277,8 @@ async def process_command_queue():
 
         # Wait for response
         response = await wait_for_response()
-        translate_response(response)
+        arduino_response_recorder = translate_response(response, monitoring)
+        #print (arduino_response_recorder)
         
     command_in_progress = False
 
@@ -215,7 +310,8 @@ async def wait_for_response():
                     break
             
             if response:
-                #print_debug_info(response)
+                if monitoring:
+                    print_debug_info(response)
                 
                 return response
             print(f"Attempt {attempt+1}/{max_retry}: No response received.")
@@ -228,7 +324,7 @@ async def wait_for_response():
 
     print("Max retries reached. Exiting without a successful response.")
 
-def translate_response(response):
+def translate_response(response, monitoring = 0):
     
     byte_values = [b for b in response]
     
@@ -257,9 +353,10 @@ def translate_response(response):
                 val3 = int.from_bytes(byte_values[index + 2:index + 4], byteorder='little')
                 if 32769 <= val3 <= 65535:
                     val3 = val3 - 65536  # 음수 변환
-                print(f"{id_byte} : Sensor | {val1/10} v, {val2/10} a, {val3/100} °")
+                if monitoring:
+                    print(f"{id_byte} : Sensor | {val1/10} v, {val2/10} a, {val3/100} °")
                 index += 4
-                bufferData[id_byte] = {"voltage": val1/10, "current": val2/10, "angle": val3/100}
+                bufferData[id_byte].update({"voltage": val1/10, "current": val2/10, "angle": val3/100})
             
             else:
                 print("Incomplete data for header 'S'")
@@ -271,9 +368,10 @@ def translate_response(response):
                 val3 = byte_values[index + 3]
                 val4 = byte_values[index + 4]
                 val5 = byte_values[index + 5]
-                print(f"{id_byte} : PWM | mosfet {val1}, servo {val2}, LED {val3}, {val4}, {val5}")
+                if monitoring:
+                    print(f"{id_byte} : PWM | mosfet {val1}, pulse {val2}, LED {val3}, {val4}, {val5}")
                 index += 6
-                bufferData[id_byte] = {"mosfet": val1, "servo": val2, "LED": [val3, val4, val5]}
+                bufferData[id_byte].update({"mosfet": val1, "pulse": val2, "LED": [val3, val4, val5]})
             else:
                 print("Incomplete data for header 'P'")
         
@@ -283,21 +381,27 @@ def translate_response(response):
                 val2 = int.from_bytes(byte_values[index + 2:index + 4], byteorder='little')  # uint16
                 val3 = byte_values[index + 4]  # uint8
                 val4 = byte_values[index + 5]  # uint8
-                print(f"{id_byte} : EEPROM | origin Angle {val1/100}, origin Pulse {val2}, current Threshold {val3/10}, Max Network Loss {val4/10}")
+                if monitoring:
+                    print(f"{id_byte} : EEPROM | origin Angle {val1/100}, origin Pulse {val2}, current Threshold {val3/10}, Max Network Loss {val4/10}")
                 index += 6  # 6바이트를 읽었으므로 인덱스를 6 증가시킴
-                bufferData[id_byte] = {"originAngle": val1/100, "originPulse": val2, "currentThreshold": val3/10, "maxNetworkLoss": val4/10}
+                bufferData[id_byte].update({"originAngle": val1/100, "originPulse": val2, "currentThreshold": val3/10, "maxNetworkLoss": val4/10})
             else:
                 print("Incomplete data for header 'R'")
         
         elif header in 'ACT':
             if index + 1 <= len(byte_values):
                 val1 = byte_values[index]
-                print(f"Header: {header} | Value: {val1}")
+                if monitoring:
+                    print(f"Header: {header} | Value: {val1}")
                 index += 1
-                bufferData[id_byte] = {header: val1}
+                bufferData[id_byte].update({header: val1})
             else:
                 print(f"Incomplete data for header '{header}'")
         
+        elif header in 'MVL':
+            if monitoring:
+                print(f"Write {header} command sent ")
+
         else:
             print(f"Unknown header: {header}")
     return bufferData
@@ -307,13 +411,14 @@ def onReceivedFromArduino(response):
     """Process the response from Arduino."""
 
     try:
-        data = translate_response(response)
+        data = translate_response(response, monitoring)
         if data is not None: 
 
             arduino_response_recorder.append(data)
         else:        
             raise TypeError 
     except TypeError:
+        print(data)
         print('translation cmd -> byteArr error')
 
     if command_queue:
@@ -396,6 +501,7 @@ async def manual_input():
             try:
                 if parsed_input is not None: 
                     await send_command_to_arduino(parsed_input)
+                    print(arduino_response_recorder)
                 else:        
                     raise TypeError 
             except TypeError:
