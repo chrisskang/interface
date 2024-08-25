@@ -56,13 +56,15 @@ goalPos1 = {"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": 30, "t": 1}, {"
 
 loopBetween ={"type": "angles", "angles": [{"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 30, "t": 1}, {"a": -30, "t": 1}, {"a": 0, "t": 0}, {"a": -30, "t": 1}]}
 
-twistPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -60, "toggle": 1}, {"angle": 60, "toggle": 1}, {"angle": 30, "toggle": 1}]}
+twistPos = {"type": "angles", "angles": [{"a": 30, "t": 1}, {"a": 60, "t": 1}, {"a": -60, "t": 1}, {"a": 15, "t": 1}, {"a": 15, "t": 1}, {"a": 15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": 15, "t": 1}, {"a": 15, "t": 1}, {"a": -60, "t": 1}, {"a": 60, "t": 1}, {"a": 30, "t": 1}]}
 
-liftPos = {"type": "angles", "angles": [{"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": 0, "toggle": 0}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 30, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": -15, "toggle": 1}, {"angle": 15, "toggle": 1}, {"angle": -30, "toggle": 1}]}
+liftPos = {"type": "angles", "angles": [{"a": 30, "t": 1}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": 15, "t": 1}, {"a": -30, "t": 1}, {"a": 15, "t": 1}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": -15, "t": 1}, {"a": 30, "t": 1}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": 0, "t": 0}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": -30, "t": 1}, {"a": 15, "t": 1}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": -15, "t": 1}, {"a": 30, "t": 1}, {"a": -15, "t": 1}, {"a": -15, "t": 1}, {"a": 15, "t": 1}, {"a": -30, "t": 1}]}
 
 
 arduino_response_recorder = None
 
+working_id = [4,7]
+#working_id = [3,4,7,8,31,32,35,36]
 
 #-----------------Server Communication-----------------
 async def server_login(websocket):
@@ -90,24 +92,51 @@ async def onReceived(message):
 
 async def loop(goalPosition, totalDuration):
     #TODO loop between two positions
+    totalDuration = int(totalDuration)
+    totalFrame = totalDuration * FRAME_RATE
 
-    currentPos = await getCurrentPos()
-    
-
-
-
-async def go_to_pos(goalPosition):
-    #TODO PARSE GOAL POSITION
-    #driveTo parsed value
+    data = await parseGoalBasedOnWorkingID(goalPosition)
+    for i in range(len(data)):
+        #get current position
+        currentPos = await getArduinoData(i, "angle")
+        #get goal position
+        goalPos = data[i]["angle"]
+        #turn on mosfet 
+        await turnOnMosfet(i)
+    #--> all motors are turned on and ready
+    #--> start loop
+    # for i in range(totalFrame):
+    #     for i in range(len(data)):
+    #         await single_driveTo(data[i]["id"], angle_to_pulse(lerp(currentPos, goalPos, i/totalFrame)))
+    #     await asyncio.sleep(1/FRAME_RATE)
 
     return
 
 
+async def go_to_posALL(goalPosition):
+    #parse with working ones
+    data = await parseGoalBasedOnWorkingID(goalPosition)
 
+    #turn on mosfet
+    # for i in range(len(data)):
+    #     await turnOnMosfet(data[i]["id"])
+    
+    await multiple_driveTo(data)
+
+
+async def parseGoalBasedOnWorkingID(goalPosition):
+    data = []
+
+    for i in range(36):
+        if i in working_id:
+            if goalPosition['angles'][i]['t'] == 1:
+                data.append({"id" : i, "angle" : goalPosition['angles'][i]['a']})
+    
+    return data
 
 async def calibrate_angle():
 
-    id = 4
+    id = 32
     #turn mosfet off
     await send_command_to_arduino([{"id": id, "commands": [("M", 0)]}])
     
@@ -123,7 +152,7 @@ async def calibrate_angle():
         goal = 0
         print("mosfet is on and driving to ", goal)
 
-        await driveTo(id, goal)
+        await single_driveTo(id, goal, cablibrate = False)
         #TODO record position
 
     return
@@ -143,8 +172,57 @@ async def turnOnMosfet(id):
 
     #check if mosfet is still on
     return await getArduinoData(id, "mosfet")
-   
-async def driveTo(id, goalPulse):
+
+
+async def multiple_driveTo(parsedPositions):
+    #get current angle and max step
+    maxStep = 0
+    currentPositions = []
+    for i in range(len(parsedPositions)):
+        currentPositions.append({"id": parsedPositions[i]['id'], "currentAngle": 10, "currentPulse": angle_to_pulse(10),"goalAngle": parsedPositions[i]['angle'], "goalPulse": angle_to_pulse(parsedPositions[i]['angle'])})
+        goal_range = angle_to_pulse(10)
+
+
+    goal_range = 0
+
+    for i in range(len(currentPositions)):
+        
+        #print (currentPositions[i])
+        goal_range = currentPositions[i]["goalPulse"] - currentPositions[i]["currentPulse"]
+
+        stepCount = goal_range/MINPULSE
+        
+        maxStepBuffer = math.ceil(abs(stepCount))
+        if maxStepBuffer > maxStep:
+            maxStep = maxStepBuffer
+    
+    # for i in range(maxStep):
+    #     for j in range(len(currentPositions)):
+    #         goal_range = currentPositions[j]["goalPulse"] - currentPositions[j]["currentPulse"]
+    #         bufferStep = goal_range/maxStep
+
+    #         if currentPositions[j]["goalPulse"] < currentPositions[j]["currentPulse"]:
+    #             bufferStep = -bufferStep
+    #         #await send_command_to_arduino([{"id": currentPositions[j]["id"], "commands": [("V", currentPositions[j]["currentPulse"] + bufferStep)]}])
+    #         print("Driving {} to: ".format(currentPositions[j]["id"]), currentPositions[j]["currentPulse"] + bufferStep)
+    #         await asyncio.sleep(0.1)
+
+    #     if i == maxStep-1:
+    #         for j in range(len(currentPositions)):
+    #             #await send_command_to_arduino([{"id": currentPositions[j]["id"], "commands": [("V", currentPositions[j]["goalPulse"])]})
+    #             print("Reached goal pulse at: ", currentPositions[j]["goalPulse"])
+    #             print("mosfet is :", await getArduinoData(currentPositions[j]["id"], "mosfet"))
+    #             print("current pulse is :", await getArduinoData(currentPositions[j]["id"], "pulse"))
+    #             print("current angle is :", await getArduinoData(currentPositions[j]["id"], "angle"))
+
+    print (maxStep)
+    
+    
+    
+    # for i in range(len(parsedPositions)):
+    #     print (i)
+
+async def single_driveTo(id, goalPulse, calibrate = False):
     #send pulse command incrementally
     currentPulse = await getArduinoData(id, "pulse")
     originPulse = await getArduinoData(id, "originPulse")
@@ -166,6 +244,15 @@ async def driveTo(id, goalPulse):
             await send_command_to_arduino([{"id": id, "commands": [("V", currentPulseNormalized + bufferStep)]}])
             print("Driving to: ", currentPulseNormalized + bufferStep)
             await asyncio.sleep(0.1)
+            # if calibrate:
+            #     angle = await getArduinoData(id, "angle")
+            #     pulse = await getArduinoData(id, "pulse")
+
+            #     json_data = {"id": id, "goalPulse": pulse, "angle": angle}
+            #     with open('calibration.json', 'a') as f:
+            #         json.dump(json_data, f)
+            #         f.write('\n')
+
             if i == math.ceil(abs(stepCount))-1:
 
                 await send_command_to_arduino([{"id": id, "commands": [("V", goalPulse)]}])
@@ -177,9 +264,9 @@ async def driveTo(id, goalPulse):
 
     elif not await getArduinoData(id, "mosfet"):
         if await turnOnMosfet():
-            driveTo(id, goalPulse)
+            single_driveTo(id, goalPulse)
 
-       
+      
 async def getArduinoData(id,requestType):
     global arduino_response_recorder
     S_data = ["voltage", "current", "angle"]
@@ -475,7 +562,7 @@ async def auto_input():
             totalTime = await aioconsole.ainput("Enter total time to loop(s) : ")
             await loop(goalPos, totalTime)
         elif move_input == "S" or move_input == "s":
-            await go_to_pos(goalPos)
+            await go_to_posALL(goalPos)
             #asyncio.create_task(go_to_pos(goalPos))
         else:
             print("Invalid input")
@@ -513,13 +600,13 @@ async def main():
     uri = "ws://localhost:8001"
     
     # Open the serial port
-    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-    url=SERIAL_PORT, baudrate=BAUD_RATE
-    )
+    # arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+    # url=SERIAL_PORT, baudrate=BAUD_RATE
+    # )
 
-    global arduino_reader_global, arduino_writer_global
-    arduino_reader_global = arduino_reader
-    arduino_writer_global = arduino_writer
+    # global arduino_reader_global, arduino_writer_global
+    # arduino_reader_global = arduino_reader
+    # arduino_writer_global = arduino_writer
     
     # try:
     async with websockets.connect(uri) as websocket:
