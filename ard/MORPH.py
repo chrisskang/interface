@@ -5,7 +5,7 @@ import struct
 monitoring = True
 
 # Serial port settings
-SERIAL_PORT = 'COM4'  # Change this to your actual port
+SERIAL_PORT = 'COM5'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 

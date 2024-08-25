@@ -4,7 +4,7 @@
 #define SetID  4
 uint8_t unitID[2] = { SetID * 2 - 1, SetID * 2 };
 boolean monitoring = true;
-bool debug = false;
+bool debug = true;
 bool AS = true;
 bool INA = true;
 
@@ -14,12 +14,13 @@ bool INA = true;
 #define RXpin   3
 #define TXpin   5
 #define RS485EN 4
-#define PCAEN   6
+//#define PCAEN   6
 #define AS_A    7
 #define AS_B    8
-#define mosfetA 9
-#define mosfetB 10
-
+#define mosfetA 15  //A1
+#define mosfetB 16  //A2
+#define ledA  11
+#define ledB  6
 
 // ------------------------------
 //    I2C Addr.
@@ -76,9 +77,12 @@ int rxBufferIndex = 0;          // 수신 버퍼 인덱스
 // ------------------------------
 //    PCA9548
 // ------------------------------
-#include <Adafruit_PWMServoDriver.h>
-Adafruit_PWMServoDriver PCA9685 = Adafruit_PWMServoDriver();
-// Set 3: 0x4F
+//#include <Adafruit_PWMServoDriver.h>
+//Adafruit_PWMServoDriver PCA9685 = Adafruit_PWMServoDriver();
+//// Set 3: 0x4F
+
+#include <Servo.h>
+Servo myServos[2];
 
 
 // ------------------------------
@@ -95,11 +99,18 @@ void setup() {
   Serial.println(unitID[1]);
   Serial.println("");
 
+  myServos[0].attach(9);
+  myServos[1].attach(10);
+
   // Mosfet settings
   pinMode(mosfetA, OUTPUT);
   pinMode(mosfetB, OUTPUT);
   digitalWrite(mosfetA, LOW);
   digitalWrite(mosfetB, LOW);
+  pinMode(ledA,OUTPUT);
+  analogWrite(ledA,0);
+  pinMode(ledB,OUTPUT);
+  analogWrite(ledB,0);
 
   // EEROM setting
   Serial.print("- EEROM init");
@@ -126,14 +137,14 @@ void setup() {
   }
   Serial.println("- I2C Communication Done");
 
-  // PCA9685 Settings
-  Serial.print("- PCA9685 Setup");
-  pinMode(PCAEN, OUTPUT);
-  digitalWrite(PCAEN, LOW);
-  PCA9685.begin();
-  PCA9685.setOscillatorFrequency(27000000);
-  PCA9685.setPWMFreq(50);
-  Serial.println("\tDone.");
+//  // PCA9685 Settings
+//  Serial.print("- PCA9685 Setup");
+//  pinMode(PCAEN, OUTPUT);
+//  digitalWrite(PCAEN, LOW);
+//  PCA9685.begin();
+//  PCA9685.setOscillatorFrequency(27000000);
+//  PCA9685.setPWMFreq(50);
+//  Serial.println("\tDone.");
 
 
   if (monitoring) {

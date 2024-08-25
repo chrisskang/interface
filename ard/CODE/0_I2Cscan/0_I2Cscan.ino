@@ -3,8 +3,8 @@
 void setup() {
   Serial.begin(115200);
   while (!Serial); // 시리얼 모니터가 준비될 때까지 기다립니다.
-  pinMode(7,OUTPUT);
-  digitalWrite(7,HIGH);
+  pinMode(6,OUTPUT);
+  digitalWrite(6,HIGH);
   //TWCR = 0;
   Wire.begin(); // SDA, SCL 핀 설정
 
