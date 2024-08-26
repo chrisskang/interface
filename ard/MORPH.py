@@ -112,6 +112,7 @@ def read_response():
             break
     
     if response:
+        print(response)
         if monitoring: print(f"Received raw response: {response.decode(errors='ignore')}")
         byte_values = [f"0x{byte:02X}" for byte in response]  # 각 바이트를 hex로 변환
         if monitoring: 
@@ -210,10 +211,6 @@ def send_command_and_measure_time(id, commands):
     
     start_time = time.time()  # Record the start time
     response = read_response()  # Wait for response with a timeout
-
-
-
-
 
 def parse_input(user_input):
     """ Parse user input into ID and list of (header, value) tuples.

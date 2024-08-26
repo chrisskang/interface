@@ -14,12 +14,10 @@ import logging
 
 import serial_asyncio
 
-from utils import lerp, parse_input, translate_command_to_bytearray, angle_to_pulse
-
 monitoring = False
 
 # Serial port settings
-SERIAL_PORT = 'COM4'  # Change this to your actual port
+SERIAL_PORT = 'COM5'  # Change this to your actual port
 BAUD_RATE = 9600
 TIMEOUT = 1  # Adjusted timeout
 
@@ -45,8 +43,6 @@ MINPULSE = 10
 # SLEEP_TIME = MINPULSE * time_per_pulse
 
 #print(f"SLEEP_TIME: {SLEEP_TIME} seconds")
-
-
 
 
 #default 0
@@ -139,6 +135,7 @@ async def calibrate_angle():
     id = 32
     #turn mosfet off
     await send_command_to_arduino([{"id": id, "commands": [("M", 0)]}])
+    await asyncio.sleep(1)
     
     #check mosfet turned off
     if await getArduinoData(id, "mosfet"):
@@ -147,12 +144,13 @@ async def calibrate_angle():
     else:
         print("mosfet is successfully turned off")
     
+    
     if await turnOnMosfet(id):
         await asyncio.sleep(1)
-        goal = 0
+        goal = 500
         print("mosfet is on and driving to ", goal)
 
-        await single_driveTo(id, goal, cablibrate = False)
+        await single_driveTo(id, goal, False)
         #TODO record position
 
     return
@@ -172,7 +170,6 @@ async def turnOnMosfet(id):
 
     #check if mosfet is still on
     return await getArduinoData(id, "mosfet")
-
 
 async def multiple_driveTo(parsedPositions):
     #get current angle and max step
@@ -265,8 +262,7 @@ async def single_driveTo(id, goalPulse, calibrate = False):
     elif not await getArduinoData(id, "mosfet"):
         if await turnOnMosfet():
             single_driveTo(id, goalPulse)
-
-      
+    
 async def getArduinoData(id,requestType):
     global arduino_response_recorder
     S_data = ["voltage", "current", "angle"]
@@ -288,39 +284,97 @@ async def getArduinoData(id,requestType):
     else:
         return arduino_response_recorder[id][requestType]
 
+def lerp(a, b, t):
+    return a * (1.0 - t) + (b * t)
 
-# async def makeRandom(goal, currentFrame, totalFrame):
-#     bufferDict = defaultData
+def parse_input(user_input):
+    try:
+        user_input.split()[0].split(":")[1]
+    except:
+        print("Invalid user input")
+        return
+    cmdList = []
 
-#     for i in range(len(goal["angles"])):
-#         noise = PerlinNoise(octaves=8, seed=i)
-            
-#         angleMax = goal["angles"][i]["a"]
-#         toggle = goal["angles"][i]["t"]
-#         bufferDict["angles"][i]["a"] = noise(i+(currentFrame/totalFrame)*10) * angleMax
-#         bufferDict["angles"][i]["t"] = toggle
+    for index, parts in enumerate(user_input.split()):
+        parts = parts.split(':')
 
-# async def send_loop(totalFrame, goalAngle):
-#     # generate lerped Json from loopGoal
-#     for i in range(totalFrame):
-#         bufferDict = getBufferDict(goalAngle, i, totalFrame)
-#         print("Sending frame: ", i)
-#         print(bufferDict)
-#         print("")
-#         await websocket_global.send(json.dumps(bufferDict))
-#         await asyncio.sleep(3 / totalFrame)
-#     return bufferDict
+        id = parts[0]
+        cmds = parts[1]
+        
+        cmdList.append({})
+        cmdList[index]['id'] = id
+        cmdList[index]['commands'] = []
+    
+        for part in cmds.split(','):
+            header = part[0]
+            value = part[1:].strip() if len(part) > 1 else ''
+            cmdList[index]['commands'].append((header, value))
+        
+    return cmdList
 
-# def getBufferDict(goal, currentFrame, totalFrame):
-#     bufferDict = defaultData
-#     lerpVal = currentFrame / (totalFrame - 1)  # Adjusted lerp value to start from 0 and end at 1
+def translate_command_to_bytearray(cmdList):
+    message = bytearray()
+    message.append(int(cmdList['id']))
+    
+    for cmd in cmdList['commands']:
+        header = cmd[0]
+        value = cmd[1]
+       
+        if len(header) != 1 or not header.isalpha():
+            print(f"Error: Header '{header}' must be a single alphabetic character.")
+            return
+        
+        message.append(ord(header))  # Header를 ASCII 값으로 추가
 
-#     for i in range(len(goal["angles"])):
-#         angle = lerp(defaultData["angles"][i]["a"], goal["angles"][i]["a"], lerpVal)
-#         toggle = goal["angles"][i]["t"]
-#         bufferDict["angles"][i]["a"] = angle
-#         bufferDict["angles"][i]["t"] = toggle
-#     return bufferDict
+        if header in ['A', 'V','U']:
+            # 데이터가 int16_t 형식일 때
+            try:
+                int16_value = int(value)
+                message.extend(int16_value.to_bytes(2, byteorder='little', signed=True))
+            except ValueError:
+                print(f"Error: Data '{value}' should be an integer for '{header}' header.")
+                return
+        elif header in ['C', 'T', 'M']:
+            # 데이터가 int8_t 형식일 때
+            try:
+                int8_value = int(value)
+                if not (0 <= int8_value <= 255):
+                    print(f"Error: Value '{int8_value}' for header '{header}' out of range (0-255).")
+                    return
+                message.append(int8_value & 0xFF)
+            except ValueError:
+                print(f"Error: Data '{value}' should be an integer for '{header}' header.")
+                return
+        elif header == 'L':
+            # 데이터가 3개의 int8_t 형식일 때
+            try:
+                values = list(map(int, value.split('/')))
+                if len(values) != 3:
+                    print(f"Error: Header 'L' requires exactly 3 values.")
+                    return
+                for val in values:
+                    if not (0 <= val <= 255):
+                        print(f"Error: Value '{val}' for 'L' header out of range (0-255).")
+                        return
+                    message.append(val & 0xFF)
+            except ValueError:
+                print(f"Error: Data '{value}' should be a comma-separated list of integers for 'L' header.")
+                return
+        elif header in ['S', 'P', 'R','H','X']:
+            # 헤더가 'S', 'P', 'R'인 경우 값 없음
+            pass
+        else:
+            print(f"Error: Unsupported header '{header}'.")
+            return
+        
+    message.append(ord('\n'))
+    return message
+
+def angle_to_pulse(a):
+    #angle per 50 == 4.1
+    PulsePerDegree = 12.2
+    return PulsePerDegree*a
+
 
 #-----------------Arduino Communication-----------------
 
@@ -335,7 +389,6 @@ async def send_command_to_arduino(inputList):
     if not command_in_progress:
         await process_command_queue()
     
-
 async def listen_from_arduino():
     while True:
         response = await wait_for_response()
@@ -352,6 +405,12 @@ async def process_command_queue():
         cmdList = command_queue.popleft()
  
         try:
+
+            for cmd in cmdList['commands']:
+                if cmd[0] == 'X':
+                    reset_serial_buffers()
+                    cmdList['commands'].remove(cmd)
+
             message = translate_command_to_bytearray(cmdList)
             if message is not None: 
                 arduino_writer_global.write(message)
@@ -372,6 +431,7 @@ async def process_command_queue():
 async def wait_for_response():
     response = bytearray()
     max_retry = 5
+
     
     def print_debug_info(response):
         """ Helper function to print debugging information. """
@@ -386,7 +446,6 @@ async def wait_for_response():
             while True:
                 chunk = await asyncio.wait_for(arduino_reader_global.read(1), timeout=TIMEOUT)
                 
-
                 if not chunk:
                     break
                 
@@ -397,6 +456,7 @@ async def wait_for_response():
                     break
             
             if response:
+                print(response)
                 if monitoring:
                     print_debug_info(response)
                 
@@ -412,6 +472,8 @@ async def wait_for_response():
     print("Max retries reached. Exiting without a successful response.")
 
 def translate_response(response, monitoring = 0):
+    if response is None:
+        return
     
     byte_values = [b for b in response]
     
@@ -511,12 +573,16 @@ def onReceivedFromArduino(response):
     if command_queue:
         asyncio.create_task(process_command_queue())
 
+def reset_serial_buffers():
+    arduino_writer_global.transport.serial.reset_input_buffer()
 
+    arduino_writer_global.transport.serial.reset_output_buffer()
+    print("Resetting buffer")
 
 #-----------------Input Producer-----------------
 async def producer():
     while True:
-        input = await aioconsole.ainput("Choose input stream (manual : m / auto : a / calibrate : c): ")
+        input = await aioconsole.ainput("Choose input stream (manual : m / auto : a / calibrate : c / reset : r): ")
         if input == "a" or input == "auto":
             await auto_input()
             
@@ -524,6 +590,8 @@ async def producer():
             await manual_input()
         elif input == "c":
             await calibrate_angle()
+        elif input == "r":
+            reset_serial_buffers()
 
         else:
             print("Invalid input")
@@ -576,14 +644,6 @@ async def manual_input():
                     
         else:       
             parsed_input = parse_input(user_input)
-            
-            # for cmdList in parsed_input:
-            #     for cmds in cmdList['commands']:
-            #         if "X" in cmds:
-            #             arduino_reader_global.reset_input_buffer()
-            #             arduino_reader_global.reset_output_buffer()
-            #             arduino_writer_global.reset_input_buffer()
-            #             arduino_writer_global.reset_output_buffer()
 
             try:
                 if parsed_input is not None: 
@@ -595,18 +655,17 @@ async def manual_input():
                 print('parsing error')
                 pass
 
-
 async def main():
     uri = "ws://localhost:8001"
     
-    # Open the serial port
-    # arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
-    # url=SERIAL_PORT, baudrate=BAUD_RATE
-    # )
+    #Open the serial port
+    arduino_reader, arduino_writer = await serial_asyncio.open_serial_connection(
+    url=SERIAL_PORT, baudrate=BAUD_RATE
+    )
 
-    # global arduino_reader_global, arduino_writer_global
-    # arduino_reader_global = arduino_reader
-    # arduino_writer_global = arduino_writer
+    global arduino_reader_global, arduino_writer_global
+    arduino_reader_global = arduino_reader
+    arduino_writer_global = arduino_writer
     
     # try:
     async with websockets.connect(uri) as websocket:
