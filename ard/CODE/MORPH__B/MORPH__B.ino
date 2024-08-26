@@ -1,12 +1,12 @@
 // ------------------------------
 //    ID init
 // ------------------------------
-#define SetID  4
+#define SetID  5
 uint8_t unitID[2] = { SetID * 2 - 1, SetID * 2 };
 boolean monitoring = true;
 bool debug = true;
-bool AS = true;
-bool INA = true;
+bool AS = false;
+bool INA = false;
 
 // ------------------------------
 //    Pinmap
@@ -183,7 +183,8 @@ void setup() {
 
 }
 
-
+#define MAX_RETRIES 3 // 최대 재시도 횟수
+#define TIMEOUT 500   // 각 수신 대기 시간 (ms)
 
 
 // ------------------------------------------------------
@@ -195,10 +196,30 @@ void loop() {
   if (RS485.available()) {
     // 수신 버퍼를 초기화하고 데이터를 읽습니다.
     rxBufferIndex = 0;
+    //delay(1);
     while (RS485.available() && rxBufferIndex < BUFFER_SIZE) {
       rxBuffer[rxBufferIndex++] = RS485.read();
     }
 
+    if(rxBuffer[rxBufferIndex-1] != '\n'){
+      delay(1);
+      while (RS485.available() && rxBufferIndex < BUFFER_SIZE) {
+        rxBuffer[rxBufferIndex++] = RS485.read();
+      }      
+      if(rxBuffer[rxBufferIndex-1] != '\n'){
+        delay(1);
+        while (RS485.available() && rxBufferIndex < BUFFER_SIZE) {
+          rxBuffer[rxBufferIndex++] = RS485.read();
+        }      
+        if(rxBuffer[rxBufferIndex-1] != '\n'){
+          delay(1);
+          while (RS485.available() && rxBufferIndex < BUFFER_SIZE) {
+            rxBuffer[rxBufferIndex++] = RS485.read();
+          }      
+        }
+      }
+    }
+    Serial.println(rxBufferIndex);
     // 받은 데이터 전체를 1바이트 단위로 16진수 출력
     Serial.print("Received buffer: ");
     for (int i = 0; i < rxBufferIndex; i++) {
