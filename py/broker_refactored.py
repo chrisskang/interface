@@ -1,4 +1,5 @@
 from collections import deque
+import math
 import random
 import time
 import aioconsole
@@ -22,10 +23,13 @@ command_in_progress = False
 monitoring = True
 arduino_response_recorder = None
 
-MAX_SEND_RETRIES = 2
+MAX_SEND_RETRIES = 3
 BACKOFF_FACTOR = 1.1
+MINPULSE = 10
 
 TIMEOUT = 0.2
+
+working_id = [32, 35]
 
 #-----------------Server Functions-----------------
 async def server_login(websocket):
@@ -87,7 +91,8 @@ async def process_command_queue():
             command_queue.popleft() #delete the command that has been sent
 
         else:
-            print(f"Command failed on: {cmd["id"]} / maintenance and moving to the end")
+            if monitoring:
+                print(f"Command failed on: {cmd["id"]} / maintenance and moving to the end")
             await perform_maintenance(cmd["id"])
             if "attempt" not in cmd:
                 cmd["attempt"] = 1
@@ -101,7 +106,8 @@ async def process_command_queue():
                 command_queue.remove(cmd)
         
         if not command_queue and failed:
-            print(f"Reached maximum retries on all, Command failed on : {', '.join(str(id) for id in failed)}")
+            if monitoring:
+                print(f"Reached maximum retries on all, Command failed on : {', '.join(str(id) for id in failed)}")
 
     command_in_progress = False
 
@@ -171,14 +177,28 @@ async def go_to_posALL(goalPosition):
     #parse with working ones
     data = await parseGoalBasedOnWorkingID(goalPosition)
 
+    #check origin 
     #turn on mosfet
     # for i in range(len(data)):
     #     await turnOnMosfet(data[i]["id"])
     
     await multiple_driveTo(data)
 
-async def calibrate(id, pulse):
+async def checkAll():
+    #get status of all
+    status = []
 
+    for i in range(1, 37):
+    
+        await send_command_to_arduino([{"id": i, "commands": [("S", ""),("P", ""),("R", "")]}])
+
+        if arduino_response_recorder is not None and i in arduino_response_recorder:
+            status.append(arduino_response_recorder.copy())
+
+    print_table(status)
+
+async def calibrate(id, pulse):
+    
     #check if origin is calibrated
     data = await getArduinoData(id, "originPulse")
     if data > 1300 and data < 1700:
@@ -196,38 +216,13 @@ async def calibrate(id, pulse):
         print("mosfet is successfully turned off")
     
     pulseReady = await set_pulse_to_current_angle(id)
-    await asyncio.sleep(1)
 
-    mosfetData = await turn_on_mosfet(id, pulseReady)
-    print (mosfetData)
-    # if await turnOnMosfet(id):
-    #     await asyncio.sleep(1)
-    #     goal = 500
-    #     print("mosfet is on and driving to ", goal)
+    if await turn_on_mosfet(id, pulseReady):
+        await asyncio.sleep(1)
+        
+        print("mosfet is on and driving to ", pulse)
 
-    #     await single_driveTo(id, goal, False)
-    #     #TODO record position
-
-    # return
-
-async def checkAll():
-    #get status of all
-
-    status = []
-
-    for i in range(1, 37):
-    
-        await send_command_to_arduino([{"id": i, "commands": [("S", ""),("P", ""),("R", "")]}])
-
-        if arduino_response_recorder is not None and i in arduino_response_recorder:
-            status.append(arduino_response_recorder.copy())
-
-    for record in status:
-        print(record)
-            
-
-
-    
+    await single_driveTo(id, pulse, False)
 
 #------------------Control Functions---------------
 async def getArduinoData(id,requestType):
@@ -267,9 +262,70 @@ async def set_pulse_to_current_angle(id):
 
     #set pulse to match current position
     await send_command_to_arduino([{"id": id, "commands": [("V", current_pulse)]}])
+    
+    set_pulse = await getArduinoData(id, "pulse") 
 
-    return abs(await getArduinoData(id, "pulse")-int(current_pulse)) < 10
+    return abs(set_pulse-(current_pulse+ await getArduinoData(id, "originPulse"))) < 10
 
+async def single_driveTo(id, goalPulse, calibrate = False):
+    #send pulse command incrementally
+    currentPulse = await getArduinoData(id, "pulse")
+    originPulse = await getArduinoData(id, "originPulse")
+
+    currentPulseNormalized = currentPulse - originPulse #make it normalized to origin
+    goal_range = goalPulse - currentPulseNormalized
+
+    stepCount = goal_range/MINPULSE
+    
+    #check if mosfet is on
+    mosfet = await getArduinoData(id, "mosfet")
+    if mosfet:
+        
+        for i in range(math.ceil(abs(stepCount))):
+
+            bufferStep = i * MINPULSE
+            if goal_range < 0:
+                bufferStep = -bufferStep
+
+            await send_command_to_arduino([{"id": id, "commands": [("V", currentPulseNormalized + bufferStep)]}])
+            print("Driving to: ", currentPulseNormalized + bufferStep)
+            await asyncio.sleep(0.1)
+
+            if i == math.ceil(abs(stepCount))-1:
+
+                await send_command_to_arduino([{"id": id, "commands": [("V", goalPulse)]}])
+                print("Reached goal pulse at: ", goalPulse)
+
+                print("mosfet is :", await getArduinoData(id, "mosfet"))
+                print("current pulse is :", await getArduinoData(id, "pulse"))
+                print("current angle is :", await getArduinoData(id, "angle"))
+
+    else:
+        pulseReady = await set_pulse_to_current_angle(id)
+        await asyncio.sleep(1)
+        if await turn_on_mosfet(id, pulseReady):
+            await single_driveTo(id, goalPulse)
+
+async def multiple_driveTo(data):
+    maxStep = 0
+    currentPositions = []
+    for i in range(len(parsedPositions)):
+        currentPositions.append({"id": parsedPositions[i]['id'], "currentAngle": 10, "currentPulse": angle_to_pulse(10),"goalAngle": parsedPositions[i]['angle'], "goalPulse": angle_to_pulse(parsedPositions[i]['angle'])})
+        goal_range = angle_to_pulse(10)
+
+
+    goal_range = 0
+
+    for i in range(len(currentPositions)):
+        
+        #print (currentPositions[i])
+        goal_range = currentPositions[i]["goalPulse"] - currentPositions[i]["currentPulse"]
+
+        stepCount = goal_range/MINPULSE
+        
+        maxStepBuffer = math.ceil(abs(stepCount))
+        if maxStepBuffer > maxStep:
+            maxStep = maxStepBuffer
 #------------------Util Functions------------------
 async def parse_manual_input(user_input):
     #input format: 1:S, 1:A324, 1:A324,C32, 1:A324 2:C32
@@ -446,6 +502,26 @@ async def angle_to_pulse(a):
     PulsePerDegree = 12.2
     return PulsePerDegree*a
 
+async def parseGoalBasedOnWorkingID(goalPosition):
+    data = []
+
+    for i in range(36):
+        if i in working_id:
+            if goalPosition['angles'][i]['t'] == 1:
+                data.append({"id" : i, "angle" : goalPosition['angles'][i]['a']})
+    
+    return data
+
+def print_table(data):
+    headers = ["ID", "Voltage (V)", "Current (A)", "Angle (°)", "MOSFET", "Pulse", "LED", "Origin Angle (°)", "Origin Pulse", "Current Threshold (A)", "Max Network Loss (%)"]
+    print("{:<4} {:<12} {:<12} {:<10} {:<7} {:<7} {:<12} {:<18} {:<14} {:<21} {:<20}".format(*headers))
+    
+    for entry in data:
+        for id, info in entry.items():
+            print("{:<4} {:<12} {:<12} {:<10} {:<7} {:<7} {:<12} {:<18} {:<14} {:<21} {:<20}".format(
+                id, info['voltage'], info['current'], info['angle'], info['mosfet'], info['pulse'],
+                str(info['LED']), info['originAngle'], info['originPulse'], info['currentThreshold'], info['maxNetworkLoss']
+            ))
 #------------------User Input Functions------------------
 async def producer():
     while True:
