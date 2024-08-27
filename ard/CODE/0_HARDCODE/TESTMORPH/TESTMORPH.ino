@@ -96,7 +96,6 @@ float x1, y1, x2, y2;
 bool initializedCH1 = false;
 bool initializedCH2 = false;
 unsigned long timeSince = 0UL;
-unsigned long initMillis = 0UL;
 unsigned long startTimeLogger = 0UL;
 unsigned long spentTimeLogger = 0UL;
 bool measuring = false;
@@ -104,6 +103,8 @@ int dice;
 
 int swingMax = 45;
 int currentFrame = 0;
+bool channel1Started = false;
+bool channel2Started = false;
 
 int swingLocal[2] = {30, -30};
 // ------------------------------
@@ -184,9 +185,19 @@ void setup() {
   Serial.println("-----------------------------------");
   
   //CHECK ID AND CALCULATE HOW LONG TO WAIT
+  int initTime = 5000;
+  long timeToWaitFirstCH = (groupCalc(unitID[0]) -1) * initTime + 1000;
+  long timeToWaitSecondCH = (groupCalc(unitID[1]) -1) * initTime + 1000;
 
-  int timeToWaitFirstCH = 1000; //ONLY FOR TEST, WHEN PRODUCTION THIS IS ID SPECIFIC 
-  int timeToWaitSecondCH = 6000;
+  Serial.print("for id: ");
+  Serial.print(unitID[0]);
+  Serial.print(" wait for: ");
+  Serial.println(timeToWaitFirstCH);
+
+  Serial.print("for id: ");
+  Serial.print(unitID[1]);
+  Serial.print(" wait for: ");
+  Serial.println(timeToWaitSecondCH);
 
 
   unsigned long previousMillis = 0UL;
@@ -250,16 +261,16 @@ void setup() {
 boolean initRoutine(int ch){
   int currentAngle = 0;
 
-  //1. check if angle sensor exists
+  //1. check if angle sensor exists // TODO ANGLE READING WRONG
   if (angleSensorExist[ch]){
-    int currentAngle = read_angle_sensor(ch)/100;
+    currentAngle = read_angle_sensor(ch)/100;
 
     Serial.print("current angle: ");
     Serial.println(currentAngle);
 
   }
   else{
-    int currentAngle = 0;
+    currentAngle = 0;
     Serial.println("angle sensor does not exist");
   }
 
@@ -396,10 +407,7 @@ void loop() {
       case 0:
         movePerlin(goalRange);
         break;
-      case 1:
-        moveSwing(currentFrame); //0 -> 45 3->4
-        currentFrame++;
-        break;
+
       
     }
 
@@ -408,45 +416,14 @@ void loop() {
     bool isZero = moveToZero(7000); //45->0 3-> 0 
     if (isZero){
       measuring = false; // Reset measuring to start a new cycle next time
-      initMillis = 0;
       currentFrame = 0;
+      channel1Started = false;
+      channel2Started = false;
     }
   }
 
 }
 
-void moveSwing(int currentFrame){
-  
-  float totalFrame = ceil(angleToPulse(swingMax)/MIN_PULSE_STEP); //ie 45 -> 550 / 15 = 36
-
-  if (currentFrame > totalFrame){
-    Serial.println("goal reached");
-    delay(100);
-    return;
-  }else{
-  float nextPulse0 = angleToPulse(lerp(0, 30, currentFrame/totalFrame));
-  float nextPulse1 = angleToPulse(lerp(0, -30, currentFrame/totalFrame));
-
-  Serial.print("Movement: Swing \t");
-  Serial.print("currentPulse0: ");
-  Serial.print(read_pulse(0)-E_Pulse[0]);
-  Serial.print("\tcurrentPulse1: ");
-  Serial.print(read_pulse(1)-E_Pulse[1]);
-  Serial.print("\tnextPulse0: ");
-  Serial.print(nextPulse0);
-  Serial.print("\t nextPulse1: ");
-  Serial.println(nextPulse1);
-  
-  write_pulse(0, nextPulse0);
-  write_pulse(1, nextPulse1);
-
-  
-
-  pwmRun();
-  delay(100);
-  }
-
-}
 
 bool moveToZero(unsigned long maxDuration) {
   unsigned long startMillis = millis();  // Record the start time
@@ -530,41 +507,16 @@ bool moveToZero(unsigned long maxDuration) {
 
 void movePerlin(int gR){
     //check if both mosfet is on
-    if (digitalRead(mosfetP[0]) && digitalRead(mosfetP[1])){
-      Serial.print("both mosfet is on\t");
-    }
-    else{
+    if (!(digitalRead(mosfetP[0]) && digitalRead(mosfetP[1]))){
       Serial.println("turning on both mosfet");
       turn_mosfet(0, true);
       turn_mosfet(1, true);
     }
-    if (initMillis == 0){
-      //get first value and move towards that
-      initMillis = millis();
-        x1 = float(initMillis)/10000.0f *2;
-        y1 = 1.0f;
-        x2 = float(initMillis)/10000.0f *2;
-        y2 = 1.1f;
-        
-        //PerlinNoise2 results in a float between -1 and 1
-        //below we convert to a value between -goalrange and goal range
-        float a1 = PerlinNoise2(x1,y1,persistence,octaves)*gR;
-        float a2 = PerlinNoise2(x2,y2,persistence,octaves)*gR;
 
-        Serial.println("a1: ");
-        Serial.println(angleToPulse(a1));
-        Serial.println("\ta2: ");
-        Serial.println(angleToPulse(a2));
-
-        //driveToSingle(0, 0, a1);
-        //driveToSingle(1, 0, a2);
-    }
-    
-    
-    x1 = float(millis()- initMillis)/10000.0f *2;
-    y1 = 1.0f;
-    x2 = float(millis()- initMillis)/10000.0f *2;
-    y2 = 1.1f;
+    x1 = float(millis())/10000.0f *2;
+    y1 = 0.0f;
+    x2 = float(millis())/10000.0f *2;
+    y2 = 0.1f;
     
 
     //PerlinNoise2 results in a float between -1 and 1
@@ -574,20 +526,54 @@ void movePerlin(int gR){
 
     int randomPulse1 = angleToPulse(a1);
     int randomPulse2 = angleToPulse(a2);
-    
-      Serial.print("Movement: Perlin \t");
-      Serial.print("currentPulse0: ");
-      Serial.print(read_pulse(0)-E_Pulse[0]);
-      Serial.print("\tcurrentPulse1: ");
-      Serial.print(read_pulse(1)-E_Pulse[1]);
-      Serial.print("\tnextPulse0: ");
-      Serial.print(randomPulse1);
-      Serial.print("\t nextPulse1: ");
-      Serial.println(randomPulse2);
- 
-    write_pulse(0, randomPulse1);
-    write_pulse(1, randomPulse2);
-    delay(100);
+
+    Serial.print("randomPulse1: ");
+    Serial.print(randomPulse1);
+    Serial.print("\trandomPulse2: ");
+    Serial.print(randomPulse2);
+
+    if (!channel1Started) {
+        if (abs(randomPulse1) <= 20) {
+            channel1Started = true;
+            Serial.println("Channel 1 started");
+        } else {
+            randomPulse1 = 0;
+        }
+    }
+
+    // Channel 2 logic
+    if (!channel2Started) {
+        if (abs(randomPulse2) <= 20) {
+            channel2Started = true;
+            Serial.println("Channel 2 started");
+        } else {
+            randomPulse2 = 0;
+        }
+    }
+
+    if (channel1Started || channel2Started) {
+        Serial.print("Movement: Perlin \t");
+        Serial.print("currentPulse0: ");
+        Serial.print(read_pulse(0) - E_Pulse[0]);
+        Serial.print("\tcurrentPulse1: ");
+        Serial.print(read_pulse(1) - E_Pulse[1]);
+        Serial.print("\tnextPulse0: ");
+        Serial.print(randomPulse1);
+        Serial.print("\t nextPulse1: ");
+        Serial.println(randomPulse2);
+
+        if (channel1Started) {
+            write_pulse(0, randomPulse1);
+        }
+        if (channel2Started) {
+            write_pulse(1, randomPulse2);
+        }
+        delay(100);
+    }
+    else{
+      Serial.println("\t both channels are not started");
+    }
+
 }
 
 
@@ -659,6 +645,14 @@ int checkCurrent(int ch){
   return 0;
 }
 
+long groupCalc (int id){
+    if (id <= 18){
+      return id;
+    }
+    else{
+      return 37 - id;
+    }
+  }
 
 int angleToPulse(float angle){
   //angle per 50 == 4.1
