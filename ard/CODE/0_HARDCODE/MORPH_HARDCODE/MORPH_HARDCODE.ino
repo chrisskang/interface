@@ -103,8 +103,8 @@ int totalMotion = 3;
 
 
 float motion1[36] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36}
-framecount = [36,100, 36,100, 72, ]
-float motion2[36]; = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,-36}
+
+float motion2[36]; = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36}
 
 float motion3[36]; = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36}
 
@@ -176,14 +176,13 @@ float seq[totalMotion][36] = {motion1angle, motion2angle, motion3angle}; //motio
 
 
 int calcFrameCount(int seqNum , float sequence[totalMotion][36]){
- 
+  int frameCount = 0;
   switch (seqNum){
     case 1: //0 -> motion1 -> 0 -> motion2 -> 0 -> motion3 -> 0
-    int frameCount[totalMotion*3] //for each motion going, holding, releasing
-
+    
     float sequence[totalMotion][36] = {motion1angle, motion2angle, motion3angle};
     
-    for (int i = 0; i < totalMotion; i++){
+    for (int i = 0; i < 3; i++){
       int max = findMax(sequence[i])
       int maxStep = ceil(angleToPulse(max)/MIN_PULSE_STEP)
       frameCount += maxStep
@@ -195,28 +194,25 @@ int calcFrameCount(int seqNum , float sequence[totalMotion][36]){
     //---------------------------
     case 2: //0 -> randomMotion -> 0 -> randomMotion -> 0 -> randomMotion -> 0
     //make sequence but randomly
-
-    //DOESNT WORK BECAUES ALL RANDOM ARE DIFFERENET
     float randSequence[][3] = {}
 
     for (int i = 0; i < 3; i++) { //create random sequence
       int randomIndex = floor(random(0, 2.99));
       randSequence[i] = sequence[randomIndex];
     }
-    seq = randSequence
     calcFrameCount(1, sequence)
     break
 
     //---------------------------
     case 3: //0 -> motion1 -> motion2 -> motion3 -> 0
-    int frameCount[totalMotion*2+2] //first going to m1 -> m1 hold -> m2 -> m2 hold -> m3 -> m3 hold -> 0
+    
     //1. going into motion 1 frames
     int max = findMax(sequence[0])
     int maxStep = ceil(angleToPulse(max)/MIN_PULSE_STEP)
     frameCount += maxStep
     //2. find maximum angle difference between each motion
 
-    for (int i = 0; i < totalMotion; i++){
+    for (int i = 0; i < (totalMotion-1); i++){
         int max = findMaxBetween(sequence, i, i+1)
         int maxStep = ceil(angleToPulse(max)/MIN_PULSE_STEP)
         frameCount += maxStep
@@ -233,8 +229,6 @@ int calcFrameCount(int seqNum , float sequence[totalMotion][36]){
       int randomIndex = floor(random(0, 2.99));
       randSequence[i] = sequence[randomIndex];
     }
-    //update sequence to random sequence
-    seq = randSequence
     calcFrameCount(3, sequence)
     break
   }
@@ -318,22 +312,7 @@ void setup() {
   Serial.println("All READY");
   Serial.println("-----------------------------------");
 
-  int sequenceSelection = 1
-  if (sequenceSelection == 1 || sequenceSelection == 2) {
-    int frameCount[totalMotion*3] = calcFrameCount(sequenceSelection, seq)
-  }
-  elif (sequenceSelection == 3 || sequenceSelection == 4) {
-    int frameCount[totalMotion*2+2] = calcFrameCount(sequenceSelection, seq)
-  }
-  else{
-    println("sequence selection error")
-  }
-
-  int totalFrame = 0;
-  for (int i = 0; i < sizeof(frameCount)/sizeof(frameCount[0]); i++){
-    totalFrame += frameCount[i]
-  }
-  
+  int frameCount = calcFrameCount(1, float seq[totalMotion][36])
 
 
   //CHECK ID AND CALCULATE HOW LONG TO WAIT
@@ -406,8 +385,7 @@ boolean initRoutine(int ch){
   write_pulse(ch, pulse)
 
   //4. check if pulse is set correctly
-  if (read_pulse(ch) == pulse){ //TODO read pulse not possible
-
+  if (read_pulse(ch) == pulse){
   //5. turn on mosfet
     mosfetOn = turn_mosfet(ch, true)
   }
@@ -435,22 +413,17 @@ boolean initRoutine(int ch){
 
 }
 
-void driveToSingle(int ch, int goalPulse){ //TODO DEBUG CALCULATIon
+void driveToSingle(int ch, int goalPulse){
 
-  currentPulse = read_pulse(ch); //300 //24 degree
-  originPulse = read_origin_pulse(ch); //1400
+  currentPulse = read_pulse(ch);
+  originPulse = read_origin_pulse(ch);
 
-  currentPulseNormalized = currentPulse + originPulse //make it normalized to origin
-  // 1700
-
-  //goalPulse 500
-  //300 -> 500
-  //range == 200
+  currentPulseNormalized = currentPulse - originPulse //make it normalized to origin
 
   goal_range = goalPulse - currentPulseNormalized
 
   stepCount = ceil(goal_range / MIN_PULSE_STEP) ;
-  //stepcount 20
+
 
   for (int i = 0; i < stepCount; i++){
     bufferStep = i * MIN_PULSE_STEP
@@ -463,7 +436,6 @@ void driveToSingle(int ch, int goalPulse){ //TODO DEBUG CALCULATIon
       return
     }
     else{
-    
     write_pulse(ch, currentPulseNormalized + bufferStep)
     print("Driving to: ", currentPulseNormalized + bufferStep)
     delay(100);
@@ -500,106 +472,28 @@ void loop() {
     
 }
 
-int lerp(float a, float b, float t):
+int lerp(a, b, t):
     return a * (1.0 - t) + (b * t)
-
 void stepMotionLoop(int sequenceNum, int currentFrame){
 
   if (checkCurrent(0) || checkCurrent(1)){ //always check current
     println("current exceeded, exiting motion looping")
   }
   else{
+  
 
-  int frameSum = 0;
+  //step minimum pulse for motion
+  //psudocode
 
-  for (int i = 0; i < sizeof(frameCount)/sizeof(frameCount[0]); i++) {
- 
-    frameSum += frameCount[i];
+  int frameCount = 400;
 
-    int pastFrameSum = frameSum - frameCount[i];
-    
-    if (currentFrame < frameSum) {
-      // 0 -> motion1 -> 0 -> motion2 -> 0 -> motion3 -> 0
-      // {30,100,30,30,100,30,30,100,30}
+  int nextFrame = 
 
-      // 36
+  lin
 
-      //if i = 0
-      //then goal is motion1
-      //if i = 1
-      //then goal is hold
-      //if i = 2
-      //then goal is zero
-      //if i = 3
-      //then goal is motion2
-      //if i = 4
-      //then goal is hold
-      //if i = 5
-      //then goal is zero
 
-      if i == 0{
-        goalAngle1 = seq[0][0]
-        goalAngle2 = seq[0][1]
-      }
 
-      elif i%3 == 1 {
-        goalAngle1 = seq[0][0]
-        goalAngle2 = seq[0][1]
-      }
-      elif i%3 == 2 {
-        goalAngle1 = 0
-        goalAngle2 = 0
 
-      }
-      elif i%3 == 0 && i != 0{
-        goalAngle1 = seq[i/3][0]
-        goalAngle2 = seq[i/3][1]
-      }
-
-      // 0 -> motion1 -> motion2 -> motion3 -> 0
-      // {30,100,30,100,30,100,30}
-      //if i = 0
-      //then goal is motion1
-      //if i = 1
-      //then goal is hold
-      //if i = 2
-      //then goal is motion2
-      //if i = 3
-      //then goal is hold
-      //if i = 4
-      //then goal is motion3
-
-      if i == 0{
-        goalAngle1 = seq[0][0]
-        goalAngle2 = seq[0][1]
-
-      }
-
-      elif i%2 == 1 {
-        goalAngle1 = 0
-        goalAngle2 = 0
-      }
-      elif i%2 == 0 && i != 0{
-        goalAngle1 = seq[i/2][0]
-        goalAngle2 = seq[i/2][1]
-      }
-
-      //number of frame for that motion
-      currentFrameSize = frameCount[i]
-      goalPulse1 = lerp(angleToPulse(goalAngle1), angleToPulse(goalAngle2), (currentFrame - pastFrameSum ) / currentFrameSize)
-      goalPulse2 = lerp(angleToPulse(goalAngle1), angleToPulse(goalAngle2), (currentFrame - pastFrameSum ) / currentFrameSize)
-
-      write_pulse(0, goalPulse[0]);
-      write_pulse(1, goalPulse[1]);
-
-      break;
-
-    }
-    else{
-      println("motion Loop finished, starting again");
-      currentFrame = 0;
-    }
-  }
   }
 }
 
