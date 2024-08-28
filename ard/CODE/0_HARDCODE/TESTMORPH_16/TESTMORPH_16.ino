@@ -5,7 +5,7 @@
 //-------TOBE CHANGED-----
 // SetID 16 unitID 31 XX no motor!!
 #define SetID 16     
-uint8_t unitID[2] = {SetID * 2, SetID * 2 - 1}; //{1,2}
+uint8_t unitID[1] = {SetID * 2 - 1}; //32, 31 but only 31
 #define epulseA   1570
 #define epulseB   1630
 
@@ -131,22 +131,17 @@ int octaves = 3;
 float x1, y1, x2, y2; 
 
 bool initializedCH1 = false;
-bool initializedCH2 = false;
+
 unsigned long timeSince = 0UL;
 unsigned long startTimeLogger = 0UL;
 unsigned long spentTimeLogger = 0UL;
 bool measuring = false;
 int dice;
 
-int swingMax = 45;
-int currentFrame = 0;
 bool channel1Started = false;
-bool channel2Started = false;
 
-int swingLocal[2] = {30, -30};
 
 unsigned long startTime1 = 0;
-unsigned long startTime2 = 0;
 unsigned long startMillis;
 
 // ------------------------------
@@ -160,8 +155,6 @@ void setup() {
   Serial.print("\tunitID:\t");
   Serial.print(unitID[0]);
   Serial.print(",");
-  Serial.println(unitID[1]);
-  Serial.println("");
 
   // Mosfet settings
   pinMode(mosfetA, OUTPUT);
@@ -180,12 +173,12 @@ void setup() {
   Serial.println("- I2C Communication Setup");
   Wire.begin();
   Wire.setClock(800000L);
-  for (int i = 0; i < 2; i++) {
-    Serial.print("\tUnitID ");
-    Serial.print(unitID[i]);
-    if (INA) ina226_init(i);
-    if (AS) as5600_init(i);
-  }
+
+  Serial.print("\tUnitID ");
+  Serial.print(unitID[0]);
+  if (INA) ina226_init(0);
+  if (AS) as5600_init(0);
+  
   Serial.println("- I2C Communication Done");
 
   // PCA9685 Settings
@@ -205,23 +198,23 @@ void setup() {
     if (AS) readAS(0);
     if (INA) readINA(1);
     if (AS) readAS(1);
-    for (int i = 0; i < 2; i++) {
+
       Serial.print("\t[Unit ");
-      Serial.print(unitID[i]);
+      Serial.print(unitID[0]);
       if (initINA[i]) {
         readINA(i);
         Serial.print("]\tV: ");
-        Serial.print(Voltage[i]);
+        Serial.print(Voltage[0]);
         Serial.print("\tC: ");
-        Serial.print(Current[i]);
+        Serial.print(Current[0]);
         Serial.print("\tA: ");
       }
 
       if (initAS[i]) {
         readAS(i);
-        Serial.println(Angle[i]);
+        Serial.println(Angle[0]);
       }
-    }
+    
   }
 
   Serial.println(" ");
@@ -231,30 +224,15 @@ void setup() {
   //CHECK ID AND CALCULATE HOW LONG TO WAIT
  
   long timeToWaitFirstCH = (groupCalc(unitID[0]) -1) * initTime + 1000;
-  long timeToWaitSecondCH = (groupCalc(unitID[1]) -1) * initTime + 1000;
-
-  
 
   Serial.print("total init time: ");
   Serial.println(initTotalTime);
 
-  //
-
-  
-  //1 -> 1
-  //36 -> 1
-  //2 -> 2
-  //35 ->2
 
   Serial.print("for id: ");
   Serial.print(unitID[0]);
   Serial.print(" wait for: ");
   Serial.println(timeToWaitFirstCH);
-
-  Serial.print("for id: ");
-  Serial.print(unitID[1]);
-  Serial.print(" wait for: ");
-  Serial.println(timeToWaitSecondCH);
 
 
   unsigned long previousMillis = 0UL;
@@ -262,7 +240,7 @@ void setup() {
 
   //wait until timetoWaitFirstCH is reached
  
-  while (!(initializedCH1 && initializedCH2)){ //if both are not initialized
+  while (!(initializedCH1)){ //if not initialized
     
     timeSince = millis(); //increment in 1.024 milliseconds
 
@@ -273,7 +251,7 @@ void setup() {
     Serial.println(timeSince);
     previousMillis = timeSince;
   }
-  else if ((timeSince >= timeToWaitFirstCH) && (timeSince < timeToWaitSecondCH) && !initializedCH1){
+  else if ((timeSince >= timeToWaitFirstCH) && !initializedCH1){
   
     for (int i = 0; i < 3; i++){
       Serial.println("initializing first channel");
@@ -291,23 +269,6 @@ void setup() {
       }
     }
 
-  }
-  else if (timeSince >= timeToWaitSecondCH && !initializedCH2){
-   
-    for (int i = 0; i < 3; i++){
-      Serial.println("initializing second channel");
-      bool initSuccess = initRoutine(1);
-      if (initSuccess){
-        Serial.println("initialization success");
-        initializedCH2 = true;
-      
-        break;
-      }
-      else{
-        Serial.print("failed to initialize channel 2, attempt ");
-        Serial.println(i+1);
-      }
-    }
   }
   }
 
@@ -484,7 +445,6 @@ void loop() {
     // Start a new measurement cycle
     startTimeLogger = millis();
     measuring = true;
-    dice = int(random(0, 2));
     spentTimeLogger = 0;  // Reset spentTimeLogger at the start of a new cycle
   } 
   
@@ -508,9 +468,7 @@ void loop() {
     bool isZero = moveToZero(TIMETOZERO); //45->0 3-> 0 
     if (isZero){
       measuring = false; // Reset measuring to start a new cycle next time
-      currentFrame = 0;
       channel1Started = false;
-      channel2Started = false;
       startMillis = millis();
     }
   }
@@ -519,20 +477,20 @@ void loop() {
 
 
 bool moveToZero(unsigned long maxDuration) {
-  unsigned long startMillis = millis();  // Record the start time
+  unsigned long startMillisZero = millis();  // Record the start time
   bool isAtZero = false;
   bool reachedZero = false;
 
-  while (millis() - startMillis < maxDuration) {  // Run for the full duration
-    unsigned long elapsedTime = millis() - startMillis;
+  while (millis() - startMillisZero < maxDuration) {  // Run for the full duration
+    unsigned long elapsedTime = millis() - startMillisZero;
     
     // Get current pulse values for both channels and adjust by E_Pulse offsets
     int currentPulse0 = read_pulse(0) - E_Pulse[0];
-    int currentPulse1 = read_pulse(1) - E_Pulse[1];
+    //int currentPulse1 = read_pulse(1) - E_Pulse[1];
 
     // Flags to check if both channels have reached near-zero position
     bool channel0AtZero = abs(currentPulse0) <= 30;
-    bool channel1AtZero = abs(currentPulse1) <= 30;
+    //bool channel1AtZero = abs(currentPulse1) <= 30;
 
     // Check if both channels are within 20 pulses of zero
     if (!reachedZero && channel0AtZero && channel1AtZero) {
@@ -544,7 +502,7 @@ bool moveToZero(unsigned long maxDuration) {
     if (!reachedZero) {
       // Determine next pulse values for each channel if not at zero
       int nextPulse0 = currentPulse0;
-      int nextPulse1 = currentPulse1;
+      //int nextPulse1 = currentPulse1;
 
       if (!channel0AtZero) {
         if (currentPulse0 < 0) {
@@ -554,26 +512,14 @@ bool moveToZero(unsigned long maxDuration) {
         }
       }
 
-      if (!channel1AtZero) {
-        if (currentPulse1 < 0) {
-          nextPulse1 += MIN_PULSE_STEP;
-        } else {
-          nextPulse1 -= MIN_PULSE_STEP;
-        }
-      }
-
         Serial.print("Movement: Zero \t");
-      Serial.print("currentPulse0: ");
-      Serial.print(read_pulse(0)-E_Pulse[0] );
-      Serial.print("\tcurrentPulse1: ");
-      Serial.print(read_pulse(1)-E_Pulse[1]);
+        Serial.print("currentPulse0: ");
+        Serial.print(read_pulse(0)-E_Pulse[0] );
         Serial.print("\tnextPulse0: ");
         Serial.print(nextPulse0);
-        Serial.print("\t nextPulse1: ");
-        Serial.println(nextPulse1);
+
       // Write the next pulse values for both channels
       write_pulse(0, nextPulse0);
-      write_pulse(1, nextPulse1);
 
       // Run the PWM for the motors
       pwmRun();
@@ -604,33 +550,27 @@ void movePerlin(int gR, unsigned long startMillis){
 
     
     //check if both mosfet is on
-    if (!(digitalRead(mosfetP[0]) && digitalRead(mosfetP[1]))){
-      Serial.println("turning on both mosfet");
+    if (!(digitalRead(mosfetP[0]) )){
+      Serial.println("turning on mosfet");
       turn_mosfet(0, true);
-      turn_mosfet(1, true);
     }
 
 
     if (channel1Started == 0) startTime1 = millis();
-    if (channel2Started == 0) startTime2 = millis();
 
 
     // Calculate time offsets
     float timeOffset1 = float(millis() - startTime1) / 10000.0f * perlinMultiplier; //0.01 -> 0.02 //
-    float timeOffset2 = float(millis() - startTime2) / 10000.0f * perlinMultiplier;
 
     x1 = timeOffset1;
     y1 = 10.0f; //float(unitID[0]);
-    x2 = timeOffset2;
-    y2 = 20.0f; //float(unitID[1]);
-    
+ 
     //PerlinNoise2 results in a float between -1 and 1
     //below we convert to a value between -goalrange and goal range
     float a1 = PerlinNoise2(x1,y1,persistence,octaves)*gR;
-    float a2 = PerlinNoise2(x2,y2,persistence,octaves)*gR;
 
     int randomPulse1 = angleToPulse(a1);
-    int randomPulse2 = angleToPulse(a2);
+
 
     if (!channel1Started) {
         startTime1 = millis();
@@ -639,33 +579,19 @@ void movePerlin(int gR, unsigned long startMillis){
 
     }
 
-    // Channel 2 logic
-    if (!channel2Started) {
-        startTime2 = millis();
-        driveToSingle(1, 0, randomPulse2);
-        channel2Started = true;
-    }
-
-    if (channel1Started && channel2Started) {
+    if (channel1Started) {
         unsigned long elapsedTime = millis() - startTime1;
         Serial.print("Movement: Perlin \t");
         Serial.print("currentPulse0: ");
         Serial.print(read_pulse(0) - E_Pulse[0]);
-        Serial.print("\tcurrentPulse1: ");
-        Serial.print(read_pulse(1) - E_Pulse[1]);
         Serial.print("\tnextPulse0: ");
         Serial.print(randomPulse1);
-        Serial.print("\t nextPulse1: ");
-        Serial.print(randomPulse2);
         Serial.print("\t Elapsed time: ");
         Serial.print(elapsedTime);
         Serial.println(" ms");
 
         if (channel1Started) {
             write_pulse(0, randomPulse1);
-        }
-        if (channel2Started) {
-            write_pulse(1, randomPulse2);
         }
         delay(randomSpeed);
     }

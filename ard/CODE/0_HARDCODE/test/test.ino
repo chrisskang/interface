@@ -1,7 +1,7 @@
 void setup() {
   // put your setup code here, to run once:
  Serial.begin(115200);
-
+  int totaltime = 0;
  for (int i = 1; i < 19; i++){
 
     int unitID1 = i * 2 -1;

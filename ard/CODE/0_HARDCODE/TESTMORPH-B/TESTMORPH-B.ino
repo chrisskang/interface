@@ -4,8 +4,10 @@
 
 //-------TOBE CHANGED-----
 // SetID 16 unitID 31 XX no motor!!
-#define SetID 16     
-uint8_t unitID[2] = {SetID * 2, SetID * 2 - 1}; //{1,2}
+#define SetID 1  
+//uint8_t unitID[2] = {SetID * 2, SetID * 2 - 1}; //{1,2}
+uint8_t unitID[2] = {SetID * 2-1, SetID * 2}; //{1,2}
+
 #define epulseA   1570
 #define epulseB   1630
 
@@ -16,9 +18,9 @@ long RANDOMTIME = 150000; //total run time to zero
 int ZeroSpeed = 80; //ms delay time
 int randomSpeed = 80;
 
-int goalRange = 60; //max perlin angle
+int goalRange = 40; //max perlin angle
 #define MIN_PULSE_STEP 10 //minimum pulse step
-int perlinMultiplier = 1.6; //0.01 step *3
+float perlinMultiplier = 1; //0.01 step *3
 
 //setid 3 gR 45
 //tz = 30, rt = 60
@@ -41,11 +43,10 @@ int perlinMultiplier = 1.6; //0.01 step *3
 int initTime = 1000; //how long before next group starts
 bool angleSensorExist[2] = {false, false}; //turn off if you want to ignore angle sensor
 
-
 boolean monitoring = true;
 bool debug = false;
-bool AS = true;
-bool INA = true;
+bool AS = false;
+bool INA = false;
 // ------------------------------
 //    Pinmap
 // ------------------------------
@@ -55,13 +56,12 @@ bool INA = true;
 #define PCAEN   6
 #define AS_A    7
 #define AS_B    8
-#define mosfetA 9
-#define mosfetB 10
 
 
 // ------------------------------
 //    I2C Addr.
 // ------------------------------
+#include <Wire.h>
 #define INA_A_addr   0x44
 #define INA_B_addr   0x45
 #define AS5600_addr  0x36
@@ -79,7 +79,7 @@ boolean initAS[2] = {false, false};
 
 uint8_t mosfet[2] = {0, 0};
 int16_t servo[2] = {0, 0};
-uint8_t led[2][3] = {{0}};
+uint8_t led[2] = {0,0};
 
 uint8_t Voltage[2] = {0, 0};
 uint8_t Current[2] = {0, 0};
@@ -87,41 +87,40 @@ int16_t Angle[2] = {0, 0};
 
 
 int16_t E_Origin[2] = {0, 0};      // angle*100, +-18000
-int16_t E_Pulse[2] = {0, 0};
+uint16_t E_Pulse[2] = {0, 0};
 uint8_t E_Current = 80;            // mA*10, max 255 = 25.5A. ex) 80 = 8A
 uint8_t E_Timeout = 100;           // millis()/100, max 256 = 25.6 sec
 
-#define USMIN  800
-#define USMAX  2100
+#define USMIN  700
+#define USMAX  2200
 
 
 String feedback = "";
 
 
 // ------------------------------
-//    PCA9548
+//    
 // ------------------------------
-#include <Adafruit_PWMServoDriver.h>
-Adafruit_PWMServoDriver PCA9685 = Adafruit_PWMServoDriver();
-#define servoA  14
-#define servoB  1
-#define ledA1   7
-#define ledA2   6
-#define ledA3   5
-#define ledB1   4
-#define ledB2   3
-#define ledB3   2
-      
-int ledCH[2][3] = {
-  {ledA1,ledA2,ledA3},
-  {ledB1,ledB2,ledB3}
-};
+#include <Servo.h>
 
+#define servoA  9
+#define servoB  10
+#define mosfetA 15
+#define mosfetB 16
+#define ledA  11
+#define ledB  6
+
+      
+int ledCH[2] = {ledA,ledB};
 int mosfetCH[2] = {servoA,servoB};
 int mosfetP[2] = {mosfetA,mosfetB};
 
+Servo servoM[2];
 
 
+// ------------------------------
+//    
+// ------------------------------
 //persistence affects the degree to which the "finer" noise is seen
 float persistence = 0.25;
 //octaves are the number of "layers" of noise that get computed
@@ -164,15 +163,21 @@ void setup() {
   Serial.println("");
 
   // Mosfet settings
+  Serial.println("--------------PinSetup--------------");
   pinMode(mosfetA, OUTPUT);
   pinMode(mosfetB, OUTPUT);
+  pinMode(ledA,OUTPUT);
+  pinMode(ledB,OUTPUT);
+  analogWrite(ledA,10);
+  analogWrite(ledB,10);
   digitalWrite(mosfetA, LOW);
   digitalWrite(mosfetB, LOW);
+  
 
   // EEROM setting
   Serial.print("- EEROM init");
   EEPROM_init();
-    E_Pulse[0] = epulseA;
+  E_Pulse[0] = epulseA;
   E_Pulse[1] = epulseB;
   Serial.println("\tDone.");
 
@@ -188,14 +193,7 @@ void setup() {
   }
   Serial.println("- I2C Communication Done");
 
-  // PCA9685 Settings
-  Serial.print("- PCA9685 Setup");
-  pinMode(PCAEN, OUTPUT);
-  digitalWrite(PCAEN, LOW);
-  PCA9685.begin();
-  PCA9685.setOscillatorFrequency(27000000);
-  PCA9685.setPWMFreq(50);
-  Serial.println("\tDone.");
+
 
 
   if (monitoring) {
@@ -268,7 +266,6 @@ void setup() {
 
   if ((timeSince - previousMillis) > interval){
  	  Serial.print("waiting for initialization ");
-     Serial.print(interval);
     Serial.print("current time is : ");
     Serial.println(timeSince);
     previousMillis = timeSince;
@@ -344,7 +341,10 @@ boolean initRoutine(int ch){
   //write_pulse(ch, pulse);
 
   servo[ch] = pulse + E_Pulse[ch];
-  Serial.print("current pulse is : ");
+  Serial.print(pulse);
+  Serial.print("\t");
+  Serial.print(E_Pulse[ch]);
+  Serial.print("\tcurrent pulse is : ");
   Serial.println(read_pulse(ch));
   //Serial.println(abs(servo[ch]-newValue));
   
@@ -391,8 +391,9 @@ void driveToZero(int ch, int currentAngle, int goalPulse){
         bufferStep = -bufferStep; //ie 0, -15, -30, -45, -60, -75, -90, -105, -120, -135
         }
         Serial.print("Movement: slowly drive To \t");
-        Serial.print("currentPulse0: ");
-        Serial.print(read_pulse(ch)-E_Pulse[ch] );
+        Serial.print(read_pulse(ch));
+        Serial.print("\tcurrentPulse0: ");
+        Serial.print(E_Pulse[ch] );
         Serial.print("\tnextPulse0: ");
         Serial.println(currentPulse + bufferStep);
         write_pulse(ch, (currentPulse + bufferStep)); //ie 150, 135, 120, 105, 90, 75, 60, 45, 30, 15
@@ -649,8 +650,9 @@ void movePerlin(int gR, unsigned long startMillis){
     if (channel1Started && channel2Started) {
         unsigned long elapsedTime = millis() - startTime1;
         Serial.print("Movement: Perlin \t");
+        Serial.print(read_pulse(0));
         Serial.print("currentPulse0: ");
-        Serial.print(read_pulse(0) - E_Pulse[0]);
+        Serial.print(E_Pulse[0]);
         Serial.print("\tcurrentPulse1: ");
         Serial.print(read_pulse(1) - E_Pulse[1]);
         Serial.print("\tnextPulse0: ");
